@@ -4,6 +4,10 @@
 let currentTab = 'report'
 let allRecords = []
 let allStats = {}
+let currentFilters = {
+  startDate: null,
+  endDate: null
+}
 
 // ============================================
 // 초기화
@@ -54,20 +58,129 @@ function showTab(tab) {
 }
 
 // ============================================
-// 샤워 기록 로드
+// 샤워 기록 로드 (날짜 필터 지원)
 // ============================================
-async function loadRecords() {
+async function loadRecords(startDate = null, endDate = null) {
   try {
-    const response = await fetch('/api/records')
+    let url = '/api/records'
+    const params = new URLSearchParams()
+    
+    if (startDate) {
+      params.append('startDate', startDate)
+      currentFilters.startDate = startDate
+    }
+    
+    if (endDate) {
+      params.append('endDate', endDate)
+      currentFilters.endDate = endDate
+    }
+    
+    if (params.toString()) {
+      url += '?' + params.toString()
+    }
+    
+    const response = await fetch(url)
     const data = await response.json()
     
     if (data.success) {
       allRecords = data.records
       renderRecords()
+      
+      // 필터 결과 표시
+      if (data.filters && (data.filters.startDate || data.filters.endDate)) {
+        showFilterResult(data.filters)
+      } else {
+        hideFilterResult()
+      }
     }
   } catch (error) {
     console.error('Failed to load records:', error)
   }
+}
+
+// ============================================
+// 날짜 필터 적용
+// ============================================
+function applyDateFilter() {
+  const startDate = document.getElementById('filter-start-date').value
+  const endDate = document.getElementById('filter-end-date').value
+  
+  loadRecords(startDate || null, endDate || null)
+}
+
+// ============================================
+// 날짜 필터 초기화
+// ============================================
+function resetDateFilter() {
+  document.getElementById('filter-start-date').value = ''
+  document.getElementById('filter-end-date').value = ''
+  currentFilters.startDate = null
+  currentFilters.endDate = null
+  loadRecords()
+  hideFilterResult()
+}
+
+// ============================================
+// 빠른 필터
+// ============================================
+function quickFilter(type) {
+  const today = new Date()
+  let startDate = null
+  let endDate = today.toISOString().split('T')[0]
+  
+  switch(type) {
+    case 'today':
+      startDate = endDate
+      break
+    case 'week':
+      const weekAgo = new Date(today)
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      startDate = weekAgo.toISOString().split('T')[0]
+      break
+    case 'month':
+      const monthAgo = new Date(today)
+      monthAgo.setDate(monthAgo.getDate() - 30)
+      startDate = monthAgo.toISOString().split('T')[0]
+      break
+    case 'all':
+      startDate = null
+      endDate = null
+      break
+  }
+  
+  // 필터 입력 필드 업데이트
+  document.getElementById('filter-start-date').value = startDate || ''
+  document.getElementById('filter-end-date').value = endDate || ''
+  
+  loadRecords(startDate, endDate)
+}
+
+// ============================================
+// 필터 결과 표시
+// ============================================
+function showFilterResult(filters) {
+  const resultDiv = document.getElementById('filter-result')
+  const resultText = document.getElementById('filter-result-text')
+  
+  let text = ''
+  if (filters.startDate && filters.endDate) {
+    text = `${filters.startDate} ~ ${filters.endDate} 기간의 기록 ${filters.count}개`
+  } else if (filters.startDate) {
+    text = `${filters.startDate} 이후 기록 ${filters.count}개`
+  } else if (filters.endDate) {
+    text = `${filters.endDate} 이전 기록 ${filters.count}개`
+  }
+  
+  resultText.textContent = text
+  resultDiv.classList.remove('hidden')
+}
+
+// ============================================
+// 필터 결과 숨김
+// ============================================
+function hideFilterResult() {
+  const resultDiv = document.getElementById('filter-result')
+  resultDiv.classList.add('hidden')
 }
 
 // ============================================

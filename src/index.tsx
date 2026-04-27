@@ -16,21 +16,45 @@ app.use('/static/*', serveStatic({ root: './public' }))
 app.use('/favicon.ico', serveStatic({ path: './public/favicon.ico' }))
 
 // ============================================
-// API: 샤워 기록 조회
+// API: 샤워 기록 조회 (날짜 필터링 지원)
 // ============================================
 app.get('/api/records', async (c) => {
   const { DB } = c.env
 
   try {
-    const result = await DB.prepare(`
-      SELECT * FROM shower_records 
-      ORDER BY date DESC, start_time DESC
-      LIMIT 100
-    `).all()
+    // 쿼리 파라미터에서 날짜 범위 가져오기
+    const startDate = c.req.query('startDate')
+    const endDate = c.req.query('endDate')
+    const limit = parseInt(c.req.query('limit') || '100')
+
+    let query = `SELECT * FROM shower_records WHERE 1=1`
+    const params: any[] = []
+
+    // 시작 날짜 필터
+    if (startDate) {
+      query += ` AND date >= ?`
+      params.push(startDate)
+    }
+
+    // 종료 날짜 필터
+    if (endDate) {
+      query += ` AND date <= ?`
+      params.push(endDate)
+    }
+
+    query += ` ORDER BY date DESC, start_time DESC LIMIT ?`
+    params.push(limit)
+
+    const result = await DB.prepare(query).bind(...params).all()
 
     return c.json({ 
       success: true, 
-      records: result.results 
+      records: result.results,
+      filters: {
+        startDate: startDate || null,
+        endDate: endDate || null,
+        count: result.results.length
+      }
     })
   } catch (error) {
     console.error('Error fetching records:', error)
@@ -327,6 +351,58 @@ app.get('/', (c) => {
 
         <!-- Report 탭 -->
         <div id="content-report" class="max-w-7xl mx-auto px-4 py-6">
+            <!-- 날짜 필터 섹션 -->
+            <div class="bg-white rounded-lg shadow p-4 mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-filter text-blue-600 mr-2"></i>기간 필터
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">시작 날짜</label>
+                        <input type="date" id="filter-start-date" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">종료 날짜</label>
+                        <input type="date" id="filter-end-date" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="applyDateFilter()" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2">
+                            <i class="fas fa-search"></i>
+                            <span>조회</span>
+                        </button>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="resetDateFilter()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg flex items-center justify-center space-x-2">
+                            <i class="fas fa-redo"></i>
+                            <span>초기화</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 빠른 필터 버튼 -->
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button onclick="quickFilter('today')" class="px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full">
+                        <i class="fas fa-calendar-day mr-1"></i>오늘
+                    </button>
+                    <button onclick="quickFilter('week')" class="px-3 py-1 text-sm bg-green-50 hover:bg-green-100 text-green-700 rounded-full">
+                        <i class="fas fa-calendar-week mr-1"></i>최근 7일
+                    </button>
+                    <button onclick="quickFilter('month')" class="px-3 py-1 text-sm bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full">
+                        <i class="fas fa-calendar-alt mr-1"></i>최근 30일
+                    </button>
+                    <button onclick="quickFilter('all')" class="px-3 py-1 text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full">
+                        <i class="fas fa-list mr-1"></i>전체
+                    </button>
+                </div>
+                
+                <!-- 필터 결과 표시 -->
+                <div id="filter-result" class="mt-3 text-sm text-gray-600 hidden">
+                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                    <span id="filter-result-text"></span>
+                </div>
+            </div>
+            
+            <!-- 샤워 기록 테이블 -->
             <div class="bg-white rounded-lg shadow">
                 <div class="p-6">
                     <h2 class="text-xl font-bold text-gray-900 mb-4">샤워 기록</h2>
