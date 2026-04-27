@@ -443,7 +443,7 @@ app.get('/', (c) => {
             <div class="max-w-7xl mx-auto px-6 py-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <img src="/static/waiv-logo.png" alt="WAIV Logo" class="h-10 mb-4">
+                        <img src="/static/waiv-logo-clean.png" alt="WAIV Logo" class="h-10 mb-4">
                         <h1 class="text-3xl font-bold text-gray-800 mb-2">
                             Shower Performance Report
                         </h1>
@@ -459,7 +459,7 @@ app.get('/', (c) => {
             </div>
         </div>
 
-        <!-- 메인 컨텐츠 -->
+        <!-- Main Content -->
         <div class="flex-grow">
                         <i class="fas fa-plus"></i>
                         <span>Add Shower Record</span>
@@ -613,7 +613,7 @@ app.get('/', (c) => {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- 왼쪽: 로고 & 설명 -->
                     <div>
-                        <img src="/static/waiv-logo.png" alt="WAIV Logo" class="h-8 mb-3">
+                        <img src="/static/waiv-logo-clean.png" alt="WAIV Logo" class="h-8 mb-3">
                         <p class="text-sm text-gray-600">
                             SPR (Shower Performance Report)<br>
                             Data-driven Hygiene Improvement Solution
