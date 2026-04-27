@@ -539,11 +539,11 @@ app.get('/', (c) => {
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6" id="grade-cards"></div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">pts수 트렌드</h3>
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Points Trend</h3>
                     <canvas id="trend-chart"></canvas>
                 </div>
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">Cat Shower 통계</h3>
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Cat Shower Stats</h3>
                     <div id="cat-shower-stats"></div>
                 </div>
             </div>
@@ -559,11 +559,11 @@ app.get('/', (c) => {
                         <input type="date" id="input-date" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">시작 Time</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                         <input type="time" id="input-time" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">소요 Time (min)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
                         <input type="number" id="input-duration" required min="1" max="60" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="space-y-2">
