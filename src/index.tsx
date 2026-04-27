@@ -423,15 +423,15 @@ app.get('/', (c) => {
         <title>SPR - Shower Performance Report</title>
         <style>
             body { 
-                font-family: 'Inter', sans-serif; 
+                font-family: 'Montserrat', sans-serif; 
             }
         </style>
         <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
-            body { font-family: 'Inter', sans-serif; }
+            body { font-family: 'Montserrat', sans-serif; }
         </style>
     </head>
     <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -440,7 +440,6 @@ app.get('/', (c) => {
             <div class="max-w-7xl mx-auto px-6 py-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALMAAABYCAYAAACqSbymAAAADXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAADXRpZEFUeAHs7WlsU9cVx/+lhMzeKSrqFCqr5VT8w0taRbvTQOlEUPvhJupRoRqkMVtxqpTZIgqrTQ57p4nknkIZ3qENI+qZoBmYtFCgxaQ4tFB0YlR1VGdUZktndjVsZ1TnOI92BLBfvmUubB8s2hWe49j+/dv3Zl7fe/c///s557zzXFBKIAVQAilACmhgAilgAilhAqmhAqnhAqnhA6nhBKnhBKnhA6nkBankBqnkBanlB6nlBanlCKnlCKnlC6nlC6nlD6nlD6nlEKnlEKnnE6nnE6nnFKnnFKnnFqnnFqnnGKnnGKnnHKnnHKnnIKnnIKnnJKnnJKnnKqnnKqnnLqnnLqnnMannaannanXxzRYBVHlFIDw+PjkyQmYwPJQyMp91Y1RpY6MkI6dJU6dJSRVJUqdRVaVJWadRVedZVedZV+dZWOdZW+daWOdaW+dcWueaWuebWudaW+dbW+dYW+dYXOdYXOdZXOdZXudZXudaXudaXudbXudcXOdcXuddXudcX+ddX+deX+deXOdeXOdeXudeXudeXOfcXOfdXOfdXufdXufcXufdXufeXufcX+feX+fcX+feYOfeYOfeYefeYefeZefeZefeZufeZufeZ+feZ+feaOfeaOfeaufeau" alt="WAIV Logo" class="h-10 mb-4">
                         <h1 class="text-3xl font-bold text-gray-800 mb-2">
                             Shower Performance Report
                         </h1>
