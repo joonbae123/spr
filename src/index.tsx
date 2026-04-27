@@ -16,13 +16,13 @@ app.use('/static/*', serveStatic({ root: './public' }))
 app.use('/favicon.ico', serveStatic({ path: './public/favicon.ico' }))
 
 // ============================================
-// API: 샤워 기록 조회 (날짜 필터링 지원)
+// API: Shower Records Search (Date 필터링 지원)
 // ============================================
 app.get('/api/records', async (c) => {
   const { DB } = c.env
 
   try {
-    // 쿼리 파라미터에서 날짜 범위 가져오기
+    // 쿼리 파라미터에서 Date 범위 가져오기
     const startDate = c.req.query('startDate')
     const endDate = c.req.query('endDate')
     const limit = parseInt(c.req.query('limit') || '100')
@@ -30,13 +30,13 @@ app.get('/api/records', async (c) => {
     let query = `SELECT * FROM shower_records WHERE 1=1`
     const params: any[] = []
 
-    // 시작 날짜 필터
+    // Start Date 필터
     if (startDate) {
       query += ` AND date >= ?`
       params.push(startDate)
     }
 
-    // 종료 날짜 필터
+    // End Date 필터
     if (endDate) {
       query += ` AND date <= ?`
       params.push(endDate)
@@ -66,7 +66,7 @@ app.get('/api/records', async (c) => {
 })
 
 // ============================================
-// API: 새 샤워 기록 추가
+// API: 새 Add Shower Record
 // ============================================
 app.post('/api/records', async (c) => {
   const { DB } = c.env
@@ -83,7 +83,7 @@ app.post('/api/records', async (c) => {
       feet_wash
     } = data
 
-    // 점수 계산
+    // pts수 계산
     const scores = calculateScores({
       body_soap,
       hair_wash,
@@ -147,7 +147,7 @@ app.post('/api/records', async (c) => {
 })
 
 // ============================================
-// API: 샤워 기록 삭제
+// API: Shower Records 삭제
 // ============================================
 app.delete('/api/records/:id', async (c) => {
   const { DB } = c.env
@@ -170,7 +170,7 @@ app.delete('/api/records/:id', async (c) => {
 })
 
 // ============================================
-// API: 샤워 기록 수정
+// API: Shower Records 수정
 // ============================================
 app.put('/api/records/:id', async (c) => {
   const { DB } = c.env
@@ -188,7 +188,7 @@ app.put('/api/records/:id', async (c) => {
       feet_wash
     } = data
 
-    // 점수 재계산
+    // pts수 재계산
     const scores = await calculateScores({
       body_soap,
       hair_wash,
@@ -264,13 +264,13 @@ app.put('/api/records/:id', async (c) => {
 })
 
 // ============================================
-// API: 통계 조회
+// API: 통계 Search
 // ============================================
 app.get('/api/stats', async (c) => {
   const { DB } = c.env
 
   try {
-    // 등급별 분포
+    // Grade별 min포
     const gradeDistribution = await DB.prepare(`
       SELECT 
         grade,
@@ -290,7 +290,7 @@ app.get('/api/stats', async (c) => {
         END
     `).all()
 
-    // 고양이샤워 통계
+    // Cat Shower 통계
     const catShowerStats = await DB.prepare(`
       SELECT 
         COUNT(*) as total_showers,
@@ -299,7 +299,7 @@ app.get('/api/stats', async (c) => {
       FROM shower_records
     `).first()
 
-    // 최근 트렌드 (최근 30일)
+    // 최근 트렌드 (Last 30 Days)
     const recentTrend = await DB.prepare(`
       SELECT 
         date,
@@ -329,19 +329,19 @@ app.get('/api/stats', async (c) => {
 })
 
 // ============================================
-// 점수 계산 함수
+// pts수 계산 함수
 // ============================================
 async function calculateScores(data: any, DB: D1Database) {
   const { body_soap, hair_wash, teeth_brush, feet_wash, duration } = data
 
-  // 1. 완성도 점수 (체크리스트)
+  // 1. Completeness pts수 (Checklist)
   const checkedItems = [body_soap, hair_wash, teeth_brush, feet_wash].filter(Boolean).length
   const completeness_score = (checkedItems / 4) * 100
 
-  // 2. 시간 점수 (10-20분이 이상적)
+  // 2. Time pts수 (10-20min이 이상적)
   let duration_score = 100
   if (duration < 5) {
-    duration_score = 40  // 너무 짧음 (고양이샤워 의심)
+    duration_score = 40  // 너무 짧음 (Cat Shower 의심)
   } else if (duration < 10) {
     duration_score = 70  // 좀 짧음
   } else if (duration <= 20) {
@@ -352,7 +352,7 @@ async function calculateScores(data: any, DB: D1Database) {
     duration_score = 70  // 너무 김 (물 낭비)
   }
 
-  // 3. 주기 점수 (마지막 샤워 이후 경과일)
+  // 3. Frequency pts수 (마지막 샤워 이후 경과일)
   let frequency_score = 100
   let days_since_last = 1
 
@@ -368,7 +368,7 @@ async function calculateScores(data: any, DB: D1Database) {
       const today = new Date()
       days_since_last = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
 
-      // 주기 점수 계산
+      // Frequency pts수 계산
       if (days_since_last === 1) {
         frequency_score = 100
       } else if (days_since_last === 2) {
@@ -385,21 +385,21 @@ async function calculateScores(data: any, DB: D1Database) {
     console.error('Error calculating frequency:', error)
   }
 
-  // 4. 총점 (가중 평균)
+  // 4. Score (가중 Avg)
   const total_score = Math.round(
     completeness_score * 0.4 +
     frequency_score * 0.3 +
     duration_score * 0.3
   )
 
-  // 5. 등급 산정
+  // 5. Grade 산정
   let grade = 'D'
   if (total_score >= 90) grade = 'S'
   else if (total_score >= 80) grade = 'A'
   else if (total_score >= 70) grade = 'B'
   else if (total_score >= 60) grade = 'C'
 
-  // 6. 고양이샤워 판정
+  // 6. Cat Shower 판정
   const is_cat_shower = completeness_score < 50 && duration < 8
 
   return {
@@ -424,6 +424,11 @@ app.get('/', (c) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>SPR - Shower Performance Report</title>
+        <style>
+            body { 
+                font-family: 'Inter', sans-serif; 
+            }
+        </style>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -433,12 +438,12 @@ app.get('/', (c) => {
         </style>
     </head>
     <body class="bg-gray-50 min-h-screen flex flex-col">
-        <!-- 헤더 -->
+        <!-- Header -->
         <div class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-4 py-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
-                        <img src="https://www.genspark.ai/api/files/s/kc7vBVhe" alt="WAIV Logo" class="h-10">
+                        <img src="/static/waiv-logo.png" alt="WAIV Logo" class="h-10">
                         <div class="border-l border-gray-300 pl-4">
                             <h1 class="text-2xl font-bold text-gray-900 flex items-center">
                                 <i class="fas fa-shower text-blue-500 mr-2"></i>
@@ -449,7 +454,7 @@ app.get('/', (c) => {
                     </div>
                     <button onclick="showAddForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all">
                         <i class="fas fa-plus"></i>
-                        <span>샤워 기록 추가</span>
+                        <span>Add Shower Record</span>
                     </button>
                 </div>
             </div>
@@ -458,7 +463,7 @@ app.get('/', (c) => {
         <!-- 메인 컨텐츠 -->
         <div class="flex-grow">
                         <i class="fas fa-plus"></i>
-                        <span>샤워 기록 추가</span>
+                        <span>Add Shower Record</span>
                     </button>
                 </div>
             </div>
@@ -478,47 +483,47 @@ app.get('/', (c) => {
 
         <!-- Report 탭 -->
         <div id="content-report" class="max-w-7xl mx-auto px-4 py-6">
-            <!-- 날짜 필터 섹션 -->
+            <!-- Date 필터 섹션 -->
             <div class="bg-white rounded-lg shadow p-4 mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">
-                    <i class="fas fa-filter text-blue-600 mr-2"></i>기간 필터
+                    <i class="fas fa-filter text-blue-600 mr-2"></i>Date Filter
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">시작 날짜</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                         <input type="date" id="filter-start-date" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">종료 날짜</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                         <input type="date" id="filter-end-date" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="flex items-end">
                         <button onclick="applyDateFilter()" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2">
                             <i class="fas fa-search"></i>
-                            <span>조회</span>
+                            <span>Search</span>
                         </button>
                     </div>
                     <div class="flex items-end">
                         <button onclick="resetDateFilter()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg flex items-center justify-center space-x-2">
                             <i class="fas fa-redo"></i>
-                            <span>초기화</span>
+                            <span>Reset</span>
                         </button>
                     </div>
                 </div>
                 
-                <!-- 빠른 필터 버튼 -->
+                <!-- Quick Filter Buttons -->
                 <div class="flex flex-wrap gap-2 mt-4">
                     <button onclick="quickFilter('today')" class="px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full">
-                        <i class="fas fa-calendar-day mr-1"></i>오늘
+                        <i class="fas fa-calendar-day mr-1"></i>Today
                     </button>
                     <button onclick="quickFilter('week')" class="px-3 py-1 text-sm bg-green-50 hover:bg-green-100 text-green-700 rounded-full">
-                        <i class="fas fa-calendar-week mr-1"></i>최근 7일
+                        <i class="fas fa-calendar-week mr-1"></i>Last 7 Days
                     </button>
                     <button onclick="quickFilter('month')" class="px-3 py-1 text-sm bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full">
-                        <i class="fas fa-calendar-alt mr-1"></i>최근 30일
+                        <i class="fas fa-calendar-alt mr-1"></i>Last 30 Days
                     </button>
                     <button onclick="quickFilter('all')" class="px-3 py-1 text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full">
-                        <i class="fas fa-list mr-1"></i>전체
+                        <i class="fas fa-list mr-1"></i>All
                     </button>
                 </div>
                 
@@ -529,10 +534,10 @@ app.get('/', (c) => {
                 </div>
             </div>
             
-            <!-- 샤워 기록 테이블 -->
+            <!-- Shower Records 테이블 -->
             <div class="bg-white rounded-lg shadow">
                 <div class="p-6">
-                    <h2 class="text-xl font-bold text-gray-900 mb-4">샤워 기록</h2>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Shower Records</h2>
                     <div id="records-list"></div>
                 </div>
             </div>
@@ -543,58 +548,58 @@ app.get('/', (c) => {
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6" id="grade-cards"></div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">점수 트렌드</h3>
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">pts수 트렌드</h3>
                     <canvas id="trend-chart"></canvas>
                 </div>
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">고양이샤워 통계</h3>
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Cat Shower 통계</h3>
                     <div id="cat-shower-stats"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 샤워 기록 추가 모달 -->
+        <!-- Add Shower Record 모달 -->
         <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
             <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">샤워 기록 추가</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Add Shower Record</h3>
                 <form id="add-form" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">날짜</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
                         <input type="date" id="input-date" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">시작 시간</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">시작 Time</label>
                         <input type="time" id="input-time" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">소요 시간 (분)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">소요 Time (min)</label>
                         <input type="number" id="input-duration" required min="1" max="60" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">체크리스트</label>
+                        <label class="block text-sm font-medium text-gray-700">Checklist</label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-body-soap" class="rounded">
-                            <span>비누칠 제대로 함 🧼</span>
+                            <span>Proper Body Soap 🧼</span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-hair-wash" class="rounded">
-                            <span>머리 감음 🧴</span>
+                            <span>Hair Wash 🧴</span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-teeth-brush" class="rounded">
-                            <span>이 닦음 🪥</span>
+                            <span>Teeth Brush 🪥</span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-feet-wash" class="rounded">
-                            <span>발 씻음 🦶</span>
+                            <span>Feet Wash 🦶</span>
                         </label>
                     </div>
                     <div class="flex space-x-3 pt-4">
                         <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg">
-                            저장
+                            Save
                         </button>
                         <button type="button" onclick="hideAddForm()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg">
-                            취소
+                            Cancel
                         </button>
                     </div>
                 </form>
@@ -607,30 +612,30 @@ app.get('/', (c) => {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- 왼쪽: 로고 & 설명 -->
                     <div>
-                        <img src="https://www.genspark.ai/api/files/s/kc7vBVhe" alt="WAIV Logo" class="h-8 mb-3">
+                        <img src="/static/waiv-logo.png" alt="WAIV Logo" class="h-8 mb-3">
                         <p class="text-sm text-gray-600">
                             SPR (Shower Performance Report)<br>
-                            데이터 기반 위생 습관 개선 솔루션
+                            Data-driven Hygiene Improvement Solution
                         </p>
                     </div>
                     
-                    <!-- 중앙: 빠른 링크 -->
+                    <!-- 중앙: Quick Links -->
                     <div>
-                        <h3 class="text-sm font-semibold text-gray-900 mb-3">빠른 링크</h3>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Quick Links</h3>
                         <ul class="space-y-2 text-sm text-gray-600">
-                            <li><a href="#" onclick="showTab('report'); return false;" class="hover:text-blue-600">Report 보기</a></li>
-                            <li><a href="#" onclick="showTab('scorecard'); return false;" class="hover:text-blue-600">Scorecard 보기</a></li>
-                            <li><a href="#" onclick="showAddForm(); return false;" class="hover:text-blue-600">샤워 기록 추가</a></li>
+                            <li><a href="#" onclick="showTab('report'); return false;" class="hover:text-blue-600">Report View</a></li>
+                            <li><a href="#" onclick="showTab('scorecard'); return false;" class="hover:text-blue-600">Scorecard View</a></li>
+                            <li><a href="#" onclick="showAddForm(); return false;" class="hover:text-blue-600">Add Shower Record</a></li>
                         </ul>
                     </div>
                     
                     <!-- 오른쪽: 통계 -->
                     <div>
-                        <h3 class="text-sm font-semibold text-gray-900 mb-3">현재 상태</h3>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">현재 Status</h3>
                         <div class="text-sm text-gray-600 space-y-1" id="footer-stats">
-                            <p>총 기록: <span class="font-medium text-gray-900">-</span></p>
-                            <p>평균 점수: <span class="font-medium text-gray-900">-</span></p>
-                            <p>고양이샤워 비율: <span class="font-medium text-red-600">-</span></p>
+                            <p>Total Records: <span class="font-medium text-gray-900">-</span></p>
+                            <p>Avg pts수: <span class="font-medium text-gray-900">-</span></p>
+                            <p>Cat Shower Rate: <span class="font-medium text-red-600">-</span></p>
                         </div>
                     </div>
                 </div>

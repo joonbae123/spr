@@ -10,14 +10,14 @@ let currentFilters = {
 }
 
 // ============================================
-// 초기화
+// Reset
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-  // 오늘 날짜로 기본값 설정
+  // Today Date로 기본값 설정
   const today = new Date().toISOString().split('T')[0]
   document.getElementById('input-date').value = today
   
-  // 현재 시간으로 기본값 설정
+  // 현재 Time으로 기본값 설정
   const now = new Date()
   const hours = String(now.getHours()).padStart(2, '0')
   const minutes = String(now.getMinutes()).padStart(2, '0')
@@ -58,7 +58,7 @@ function showTab(tab) {
 }
 
 // ============================================
-// 샤워 기록 로드 (날짜 필터 지원)
+// Shower Records 로드 (Date 필터 지원)
 // ============================================
 async function loadRecords(startDate = null, endDate = null) {
   try {
@@ -99,7 +99,7 @@ async function loadRecords(startDate = null, endDate = null) {
 }
 
 // ============================================
-// 날짜 필터 적용
+// Date 필터 적용
 // ============================================
 function applyDateFilter() {
   const startDate = document.getElementById('filter-start-date').value
@@ -109,7 +109,7 @@ function applyDateFilter() {
 }
 
 // ============================================
-// 날짜 필터 초기화
+// Date 필터 Reset
 // ============================================
 function resetDateFilter() {
   document.getElementById('filter-start-date').value = ''
@@ -164,11 +164,11 @@ function showFilterResult(filters) {
   
   let text = ''
   if (filters.startDate && filters.endDate) {
-    text = `${filters.startDate} ~ ${filters.endDate} 기간의 기록 ${filters.count}개`
+    text = `${filters.startDate} ~ ${filters.endDate} 기간의 기록 ${filters.count}records`
   } else if (filters.startDate) {
-    text = `${filters.startDate} 이후 기록 ${filters.count}개`
+    text = `${filters.startDate} 이후 기록 ${filters.count}records`
   } else if (filters.endDate) {
-    text = `${filters.endDate} 이전 기록 ${filters.count}개`
+    text = `${filters.endDate} 이전 기록 ${filters.count}records`
   }
   
   resultText.textContent = text
@@ -200,13 +200,13 @@ async function loadStats() {
 }
 
 // ============================================
-// 샤워 기록 렌더링
+// Shower Records 렌더링
 // ============================================
 function renderRecords() {
   const container = document.getElementById('records-list')
   
   if (allRecords.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 text-center py-8">아직 샤워 기록이 없습니다.</p>'
+    container.innerHTML = '<p class="text-gray-500 text-center py-8">아직 Shower Records이 없습니다.</p>'
     return
   }
   
@@ -215,15 +215,15 @@ function renderRecords() {
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">시간</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">소요시간</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">완성도</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">주기</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">총점</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">등급</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">액션</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">소요Time</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completeness</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -231,7 +231,7 @@ function renderRecords() {
             <tr class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.date}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.start_time}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.duration}분</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.duration}min</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 <div class="flex items-center">
                   <span class="text-gray-900">${record.completeness_score}%</span>
@@ -240,11 +240,11 @@ function renderRecords() {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 <span class="${record.days_since_last <= 2 ? 'text-green-600' : 'text-red-600'}">
-                  ${record.days_since_last}일전
+                  ${record.days_since_last}days ago
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                ${record.total_score}점
+                ${record.total_score}pts
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 py-1 text-xs font-semibold rounded ${getGradeColor(record.grade)}">
@@ -252,7 +252,7 @@ function renderRecords() {
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
-                ${record.is_cat_shower ? '<span class="text-orange-600">🐱 고양이샤워</span>' : '<span class="text-green-600">✓ 정상</span>'}
+                ${record.is_cat_shower ? '<span class="text-orange-600">🐱 Cat Shower</span>' : '<span class="text-green-600">✓ Normal</span>'}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-center">
                 <div class="flex items-center justify-center space-x-2">
@@ -285,7 +285,7 @@ function renderScorecard() {
 }
 
 // ============================================
-// 등급 카드 렌더링
+// Grade 카드 렌더링
 // ============================================
 function renderGradeCards() {
   const container = document.getElementById('grade-cards')
@@ -305,8 +305,8 @@ function renderGradeCards() {
           <span class="text-2xl font-bold text-gray-900">${gradeData.count}</span>
         </div>
         <div class="text-sm text-gray-600">
-          <div>평균: ${gradeData.avg_score}점</div>
-          <div>완성도: ${gradeData.avg_completeness}%</div>
+          <div>Avg: ${gradeData.avg_score}pts</div>
+          <div>Completeness: ${gradeData.avg_completeness}%</div>
         </div>
       </div>
     `
@@ -336,7 +336,7 @@ function renderTrendChart() {
     data: {
       labels: labels,
       datasets: [{
-        label: '총점',
+        label: 'Score',
         data: scores,
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -362,7 +362,7 @@ function renderTrendChart() {
 }
 
 // ============================================
-// 고양이샤워 통계 렌더링
+// Cat Shower 통계 렌더링
 // ============================================
 function renderCatShowerStats() {
   const container = document.getElementById('cat-shower-stats')
@@ -376,7 +376,7 @@ function renderCatShowerStats() {
     <div class="space-y-4">
       <div class="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
         <div>
-          <div class="text-sm text-gray-600">고양이샤워 비율</div>
+          <div class="text-sm text-gray-600">Cat Shower Rate</div>
           <div class="text-2xl font-bold text-orange-600">${catShowerRate}%</div>
         </div>
         <div class="text-4xl">🐱</div>
@@ -384,7 +384,7 @@ function renderCatShowerStats() {
       
       <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
         <div>
-          <div class="text-sm text-gray-600">총 샤워 횟수</div>
+          <div class="text-sm text-gray-600">Total Showers 횟수</div>
           <div class="text-2xl font-bold text-blue-600">${stats.total_showers}회</div>
         </div>
         <div class="text-4xl">🚿</div>
@@ -392,7 +392,7 @@ function renderCatShowerStats() {
       
       <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
         <div>
-          <div class="text-sm text-gray-600">평균 샤워 주기</div>
+          <div class="text-sm text-gray-600">Avg 샤워 Frequency</div>
           <div class="text-2xl font-bold text-green-600">${stats.avg_days_between}일</div>
         </div>
         <div class="text-4xl">📅</div>
@@ -403,8 +403,8 @@ function renderCatShowerStats() {
           <div class="flex items-start space-x-2">
             <i class="fas fa-exclamation-triangle text-red-600 mt-1"></i>
             <div class="text-sm text-red-800">
-              <strong>경고:</strong> 고양이샤워 비율이 너무 높습니다! 
-              좀 더 깨끗하게 씻으세요! 🧼
+              <strong>Warning:</strong> Cat Shower Rate이 너무 높습니다! 
+              Please shower more properly! 🧼
             </div>
           </div>
         </div>
@@ -416,7 +416,7 @@ function renderCatShowerStats() {
 }
 
 // ============================================
-// 새 샤워 기록 추가
+// 새 Add Shower Record
 // ============================================
 async function handleAddRecord(e) {
   e.preventDefault()
@@ -456,21 +456,21 @@ async function handleAddRecord(e) {
         renderScorecard()
       }
       
-      // 성공 메시지 (점수 표시)
+      // 성공 메시지 (pts수 표시)
       const { scores } = result
       alert(`
-샤워 기록이 추가되었습니다! 🚿
+Shower Records이 추가되었습니다! 🚿
 
-총점: ${scores.total_score}점
-등급: ${scores.grade}
-${scores.is_cat_shower ? '\n⚠️ 고양이샤워로 판정되었습니다!' : '\n✅ 정상 샤워입니다!'}
+Score: ${scores.total_score}pts
+Grade: ${scores.grade}
+${scores.is_cat_shower ? '\n⚠️ Cat Shower로 판정되었습니다!' : '\n✅ Normal 샤워입니다!'}
       `)
     } else {
-      alert('샤워 기록 추가에 실패했습니다.')
+      alert('Add Shower Record에 실패했습니다.')
     }
   } catch (error) {
     console.error('Error adding record:', error)
-    alert('샤워 기록 추가 중 오류가 발생했습니다.')
+    alert('Add Shower Record 중 오류가 발생했습니다.')
   }
 }
 
@@ -488,7 +488,7 @@ function hideAddForm() {
 }
 
 // ============================================
-// 샤워 기록 삭제
+// Shower Records 삭제
 // ============================================
 async function deleteRecord(id) {
   if (!confirm('정말로 이 기록을 삭제하시겠습니까?')) {
@@ -520,7 +520,7 @@ async function deleteRecord(id) {
 }
 
 // ============================================
-// 샤워 기록 수정
+// Shower Records 수정
 // ============================================
 async function editRecord(id) {
   const record = allRecords.find(r => r.id === id)
@@ -571,7 +571,7 @@ async function editRecord(id) {
           renderScorecard()
         }
         
-        alert(`기록이 수정되었습니다!\n\n총점: ${result.scores.total_score}점\n등급: ${result.scores.grade}`)
+        alert(`기록이 수정되었습니다!\n\nScore: ${result.scores.total_score}pts\nGrade: ${result.scores.grade}`)
       } else {
         alert('기록 수정에 실패했습니다.')
       }
@@ -598,9 +598,9 @@ function updateFooterStats() {
     : 0
   
   const statsHtml = `
-    <p>총 기록: <span class="font-medium text-gray-900">${totalRecords}개</span></p>
-    <p>평균 점수: <span class="font-medium text-gray-900">${avgScore}점</span></p>
-    <p>고양이샤워 비율: <span class="font-medium ${catShowerRate > 30 ? 'text-red-600' : 'text-green-600'}">${catShowerRate}%</span></p>
+    <p>Total Records: <span class="font-medium text-gray-900">${totalRecords}records</span></p>
+    <p>Avg pts수: <span class="font-medium text-gray-900">${avgScore}pts</span></p>
+    <p>Cat Shower Rate: <span class="font-medium ${catShowerRate > 30 ? 'text-red-600' : 'text-green-600'}">${catShowerRate}%</span></p>
   `
   
   const footerStats = document.getElementById('footer-stats')
