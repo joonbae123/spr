@@ -1,146 +1,163 @@
 # 🚿 SPR (Shower Performance Report)
 
-## 프로젝트 개요
+HW 친구의 위생 습관을 데이터로 개선시키는 패러디 프로젝트
 
-**SPR (Shower Performance Report)**는 IPR (Individual Performance Report)를 패러디한 재미있는 프로젝트입니다. 
-개인의 샤워 습관을 데이터로 분석하고, 등급을 매기며, 트렌드를 추적하여 더 깨끗한 습관을 만들어가는 것을 목표로 합니다.
+## 🎯 프로젝트 개요
 
-### 타겟 사용자
-- **HW 님**: 좀 더 자주, 깨끗하게 씻기를 바라는 친구 😊
+- **이름**: SPR (Shower Performance Report)
+- **목적**: IPR (Individual Performance Report)을 패러디하여 샤워 습관을 점수화하고 추적
+- **대상**: 자주 씻지 않는 HW 친구의 위생 개선
+- **특징**: 고양이샤워 판정, 샤워 주기 추적, 완성도 평가
 
-## 🎯 주요 기능
+## 🌐 URLs
 
-### 1. **샤워 기록 추가**
-- 샤워 날짜/시간 입력
-- 소요 시간 기록 (분)
-- 체크리스트:
+- **Sandbox URL**: https://3001-inv4yn5x3mtvk6th3pan9-2e1b9533.sandbox.novita.ai
+- **프로젝트 위치**: `/home/user/spr/`
+
+## 📊 KPI 시스템
+
+### 1. 완성도 점수 (Completeness Score)
+- **측정**: 체크리스트 완료율
+- **항목**:
   - 🧼 비누칠 제대로 함
   - 🧴 머리 감음
   - 🪥 이 닦음
   - 🦶 발 씻음
+- **계산**: (완료 항목 / 4) × 100
+- **가중치**: 40%
 
-### 2. **자동 점수 계산**
-- **완성도 점수** (40%): 체크리스트 완료 항목 비율
-- **주기 점수** (30%): 마지막 샤워 이후 경과일
-- **시간 점수** (30%): 적정 시간(10-20분) 준수 여부
+### 2. 샤워 주기 점수 (Frequency Score)
+- **측정**: 마지막 샤워 이후 경과일
+- **점수**:
+  - 1일: 100점 ✅
+  - 2일: 80점 😊
+  - 3일: 60점 😐
+  - 4일: 40점 😰
+  - 5일+: 20점 🚨
+- **가중치**: 30%
 
-### 3. **등급 시스템** (IPR 동일)
-| 등급 | 점수 | 의미 |
-|------|------|------|
-| **S** | 90점 이상 | 샤워의 神 🌟 |
-| **A** | 80-89점 | 깨끗한 친구 😊 |
-| **B** | 70-79점 | 보통 ✋ |
-| **C** | 60-69점 | 좀 씻자... 😅 |
-| **D** | 60점 미만 | 비상 상황 🚨 |
+### 3. 소요 시간 점수 (Duration Score)
+- **측정**: 샤워에 소요된 시간
+- **점수**:
+  - 5분 미만: 40점 (고양이샤워 의심)
+  - 5-9분: 70점
+  - 10-20분: 100점 (이상적) ✨
+  - 21-30분: 90점
+  - 30분 초과: 70점 (물 낭비)
+- **가중치**: 30%
 
-### 4. **고양이샤워 판정**
-- 조건: 완성도 < 50% AND 시간 < 8분
-- 판정 시 경고 표시 🐱
+### 4. 총점 & 등급
+- **총점**: (완성도×0.4) + (주기×0.3) + (시간×0.3)
+- **등급**:
+  - **S등급** (90점 이상): 샤워의 神 🌟
+  - **A등급** (80-89점): 깨끗한 친구 😊
+  - **B등급** (70-79점): 보통 ✋
+  - **C등급** (60-69점): 좀 씻자... 😅
+  - **D등급** (60점 미만): 비상 상황 🚨
 
-### 5. **Report 페이지**
-- 전체 샤워 기록 리스트
-- 날짜/시간/소요시간/점수/등급 표시
-- 고양이샤워 여부 표시
+### 5. 고양이샤워 판정 🐱
+- **조건**: 완성도 < 50% AND 소요시간 < 8분
+- **효과**: 경고 표시 및 별도 통계 집계
 
-### 6. **Scorecard 페이지**
-- 등급별 분포 카드 (S/A/B/C/D)
-- 점수 트렌드 차트 (최근 30일)
-- 고양이샤워 통계
-  - 전체 샤워 중 고양이샤워 비율
-  - 평균 샤워 주기
+## 🗂️ 데이터 구조
 
-## 🌐 접속 URL
+### shower_records 테이블
 
-### 샌드박스 (개발 환경)
-- **SPR 앱**: https://3001-inv4yn5x3mtvk6th3pan9-2e1b9533.sandbox.novita.ai
-- **포트**: 3001
-
-### 기존 IPR 앱 (참고용)
-- **IPR 앱**: https://3000-inv4yn5x3mtvk6th3pan9-2e1b9533.sandbox.novita.ai
-- **포트**: 3000
-
-## 📊 데이터 구조
-
-### D1 Database: `shower_records`
 ```sql
 CREATE TABLE shower_records (
   id INTEGER PRIMARY KEY,
-  date TEXT,                  -- 샤워 날짜
-  start_time TEXT,            -- 시작 시간
-  duration INTEGER,           -- 소요 시간 (분)
+  date TEXT,              -- 샤워 날짜
+  start_time TEXT,        -- 시작 시간
+  duration INTEGER,       -- 소요 시간 (분)
   
-  body_soap INTEGER,          -- 비누칠 (0/1)
-  hair_wash INTEGER,          -- 머리 감음 (0/1)
-  teeth_brush INTEGER,        -- 이 닦음 (0/1)
-  feet_wash INTEGER,          -- 발 씻음 (0/1)
+  -- 체크리스트
+  body_soap INTEGER,      -- 비누칠
+  hair_wash INTEGER,      -- 머리감기
+  teeth_brush INTEGER,    -- 이닦기
+  feet_wash INTEGER,      -- 발씻기
   
-  completeness_score REAL,    -- 완성도 점수
-  frequency_score REAL,       -- 주기 점수
-  duration_score REAL,        -- 시간 점수
-  total_score REAL,           -- 총점
-  grade TEXT,                 -- 등급 (S/A/B/C/D)
+  -- 계산 점수
+  completeness_score REAL,
+  frequency_score REAL,
+  duration_score REAL,
+  total_score REAL,
+  grade TEXT,
   
-  is_cat_shower INTEGER,      -- 고양이샤워 판정
-  days_since_last INTEGER,    -- 마지막 샤워 이후 경과일
-  
-  created_at DATETIME,
-  updated_at DATETIME
+  -- 플래그
+  is_cat_shower INTEGER,
+  days_since_last INTEGER
 )
 ```
 
+## 📈 주요 기능
+
+### 1. Report 페이지
+- 샤워 기록 리스트 조회
+- 날짜, 시간, 완성도, 주기, 점수, 등급 표시
+- 고양이샤워 플래그 표시
+
+### 2. Scorecard 페이지
+- 등급별 통계 (S/A/B/C/D 분포)
+- 점수 트렌드 차트 (최근 30일)
+- 고양이샤워 통계
+  - 고양이샤워 비율
+  - 총 샤워 횟수
+  - 평균 샤워 주기
+
+### 3. 샤워 기록 추가
+- 날짜/시간 입력
+- 소요 시간 입력
+- 4가지 체크리스트 선택
+- 자동 점수 계산 및 등급 부여
+
 ## 🎨 디자인 시스템
 
-IPR 디자인 시스템을 그대로 재사용:
-- **색상**: Blue (Primary), Purple (Secondary)
-- **폰트**: Inter
-- **아이콘**: Font Awesome
+IPR 디자인을 그대로 계승:
+- **색상**: Tailwind CSS 기본 컬러 (Blue, Purple, Green, Red)
+- **폰트**: Inter (Google Fonts)
+- **아이콘**: Font Awesome 6.4.0
 - **차트**: Chart.js
-- **스타일**: TailwindCSS
+- **레이아웃**: Responsive Grid (Tailwind)
 
-## 💻 기술 스택
+## 🚀 배포 & 실행
 
-| 구분 | 기술 |
-|------|------|
-| **Backend** | Hono + TypeScript |
-| **Database** | Cloudflare D1 (SQLite) |
-| **Frontend** | Vanilla JavaScript + TailwindCSS |
-| **Charts** | Chart.js |
-| **Deployment** | Cloudflare Pages |
+### 로컬 개발
 
-## 🚀 로컬 개발
-
-### 1. 프로젝트 설정
 ```bash
-cd /home/user/spr
-npm install
+# 빌드
+npm run build
+
+# 데이터베이스 초기화
+npm run db:reset
+
+# PM2로 서버 시작
+pm2 start ecosystem.config.cjs
+
+# 테스트
+curl http://localhost:3001
 ```
 
-### 2. 데이터베이스 초기화
+### 데이터베이스 관리
+
 ```bash
 # 마이그레이션 적용
 npm run db:migrate:local
 
 # 테스트 데이터 추가
 npm run db:seed
+
+# DB 리셋
+npm run db:reset
 ```
 
-### 3. 빌드
-```bash
-npm run build
-```
+### Git 명령어
 
-### 4. 개발 서버 시작
 ```bash
-# PM2로 시작 (권장)
-pm2 start ecosystem.config.cjs
+# 커밋
+npm run git:commit "커밋 메시지"
 
-# 또는 직접 실행
-npm run dev:d1
-```
-
-### 5. 테스트
-```bash
-curl http://localhost:3001
+# 포트 정리
+npm run clean-port
 ```
 
 ## 📁 프로젝트 구조
@@ -148,110 +165,91 @@ curl http://localhost:3001
 ```
 /home/user/spr/
 ├── src/
-│   └── index.tsx           # Hono 백엔드 + 점수 계산 로직
+│   └── index.tsx           # Hono 백엔드 (API + 프론트엔드)
 ├── public/
 │   └── static/
 │       └── app.js          # 프론트엔드 JavaScript
 ├── migrations/
-│   └── 0001_initial_schema.sql  # DB 스키마
+│   └── 0001_initial_schema.sql
 ├── seed.sql                # 테스트 데이터
 ├── ecosystem.config.cjs    # PM2 설정
-├── wrangler.jsonc          # Cloudflare 설정
+├── wrangler.jsonc          # Cloudflare Pages 설정
 ├── package.json
 └── README.md
 ```
 
-## 📈 점수 계산 로직
+## 🎯 테스트 데이터
 
-### 1. 완성도 점수 (40%)
-```typescript
-completeness_score = (checked_items / 4) * 100
-```
+7개의 샘플 샤워 기록 포함:
+- S등급: 2회 (완벽한 샤워)
+- A등급: 2회 (괜찮은 샤워)
+- B등급: 1회 (5일만에 샤워)
+- D등급: 2회 (고양이샤워 🐱)
 
-### 2. 주기 점수 (30%)
-| 경과일 | 점수 |
-|--------|------|
-| 1일 | 100점 |
-| 2일 | 80점 |
-| 3일 | 60점 |
-| 4일 | 40점 |
-| 5일+ | 20점 |
+## 🔧 기술 스택
 
-### 3. 시간 점수 (30%)
-| 소요 시간 | 점수 |
-|-----------|------|
-| < 5분 | 40점 (고양이샤워 의심) |
-| 5-9분 | 70점 |
-| 10-20분 | 100점 (적정) |
-| 21-30분 | 90점 |
-| 31분+ | 70점 (물 낭비) |
+| 카테고리 | 기술 |
+|---------|------|
+| **프레임워크** | Hono 4.x |
+| **런타임** | Cloudflare Workers |
+| **데이터베이스** | Cloudflare D1 (SQLite) |
+| **프론트엔드** | Vanilla JS + Tailwind CSS |
+| **차트** | Chart.js |
+| **배포** | Cloudflare Pages |
 
-### 4. 총점
-```typescript
-total_score = completeness_score * 0.4 + 
-              frequency_score * 0.3 + 
-              duration_score * 0.3
-```
+## 📝 사용 가이드
 
-## 🎯 사용 시나리오
+### 1. 샤워 기록 추가
+1. 우측 상단 "샤워 기록 추가" 버튼 클릭
+2. 날짜, 시간, 소요 시간 입력
+3. 체크리스트 선택 (비누칠, 머리감기, 이닦기, 발씻기)
+4. "저장" 버튼 클릭
+5. 자동으로 점수 계산 및 등급 부여
 
-### 시나리오 1: 완벽한 샤워
-```
-날짜: 2026-04-27
-시간: 08:00
-소요: 15분
-체크: 🧼✅ 🧴✅ 🪥✅ 🦶✅
+### 2. Report 보기
+- 전체 샤워 기록을 시간순으로 확인
+- 각 기록의 완성도, 주기, 점수, 등급 표시
+- 고양이샤워 플래그 확인
 
-결과:
-- 완성도: 100점
-- 주기: 100점
-- 시간: 100점
-- 총점: 100점
-- 등급: S
-- 판정: ✅ 정상 샤워
-```
+### 3. Scorecard 보기
+- 등급별 통계 카드 (S/A/B/C/D)
+- 점수 트렌드 그래프
+- 고양이샤워 비율 및 경고
 
-### 시나리오 2: 고양이샤워
-```
-날짜: 2026-04-26
-시간: 23:30
-소요: 5분
-체크: 🧼❌ 🧴❌ 🪥✅ 🦶❌
+## 🎭 패러디 요소
 
-결과:
-- 완성도: 25점
-- 주기: 100점
-- 시간: 50점
-- 총점: 58점
-- 등급: D
-- 판정: 🐱 고양이샤워
-```
+| IPR | SPR |
+|-----|-----|
+| Worker Performance | Shower Performance |
+| Utilization | 완성도 (Completeness) |
+| Efficiency | 샤워 주기 (Frequency) |
+| Total Score | 총점 |
+| Grade (S/A/B/C/D) | 등급 (S/A/B/C/D) |
+| Outlier Detection | 고양이샤워 판정 |
+| MOD | Days Since Last |
+| Process | Checklist Items |
 
-## 🎨 UI 특징
+## 🚨 주의사항
 
-- **WAIV 로고**: IPR과 동일한 로고 유지
-- **샤워 아이콘**: 🚿 (헤더)
-- **체크리스트 이모지**: 🧼🧴🪥🦶
-- **등급별 색상**: S(보라), A(파랑), B(녹색), C(노랑), D(빨강)
-- **고양이샤워 경고**: 🐱 + 주황색 배경
+- 고양이샤워 비율이 30%를 넘으면 경고 표시
+- 5일 이상 샤워를 안 하면 등급이 크게 하락
+- 소요 시간이 너무 짧으면 자동으로 고양이샤워로 판정
 
-## 🔜 향후 계획
+## 🔮 향후 계획
 
+- [ ] 샤워 기록 수정/삭제 기능
 - [ ] 주간/월간 리포트
-- [ ] 샤워 시간 추천 알림
-- [ ] 친구와 점수 비교
-- [ ] 샤워 배지 시스템
-- [ ] 물 사용량 추정 기능
+- [ ] 샤워 알림 기능 (n일째 안 씻음!)
+- [ ] 친구들과 비교 (멀티 유저)
+- [ ] 샤워 뱃지 시스템
+- [ ] PDF 리포트 다운로드
 
-## 👥 대상
+## 📞 문의
 
-- **HW 님**: 이 앱으로 샤워 습관 개선하세요! 🚿
-- **개발자**: IPR 패러디 프로젝트 참고용
-
-## 📝 라이선스
-
-MIT License - 자유롭게 사용하세요!
+IPR 패러디 프로젝트입니다. 실제 HW 친구의 위생 개선을 위해 만들어졌습니다! 🚿
 
 ---
 
-**Made with 💧 for cleaner habits**
+**Last Updated**: 2026-04-27
+**Version**: 1.0.0
+**Status**: ✅ Active
