@@ -543,7 +543,10 @@ app.get('/', (c) => {
                     <canvas id="trend-chart"></canvas>
                 </div>
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">Cat Shower Stats</h3>
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">
+                        Cat Shower Stats 
+                        <i class="fas fa-info-circle text-gray-400 cursor-help ml-2" title="Cat Shower: Duration < 5min (quick wash without proper cleaning)"></i>
+                    </h3>
                     <div id="cat-shower-stats"></div>
                 </div>
             </div>

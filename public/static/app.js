@@ -217,11 +217,26 @@ function renderRecords() {
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completeness</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Duration 
+              <i class="fas fa-info-circle text-gray-400 cursor-help" title="Ideal: 10-20min | <5min: Cat Shower risk | >30min: Water waste"></i>
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Completeness 
+              <i class="fas fa-info-circle text-gray-400 cursor-help" title="40% weight: Body soap, Hair wash, Teeth brush, Feet wash"></i>
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Frequency 
+              <i class="fas fa-info-circle text-gray-400 cursor-help" title="30% weight: Days since last shower (1day=100pts, 2days=80pts, 3days=60pts, 4days=40pts, 5+days=20pts)"></i>
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Score 
+              <i class="fas fa-info-circle text-gray-400 cursor-help" title="Weighted avg: Completeness (40%) + Frequency (30%) + Duration (30%)"></i>
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              Grade 
+              <i class="fas fa-info-circle text-gray-400 cursor-help" title="S: 90+ | A: 80+ | B: 70+ | C: 60+ | D: <60"></i>
+            </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
           </tr>
