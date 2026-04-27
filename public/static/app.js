@@ -13,62 +13,114 @@ let currentFilters = {
 // 위생 상태 계산 함수들
 // ============================================
 
-// 현재 위생 상태 (마지막 샤워 후 경과일 기반)
-function getCurrentHygieneStatus(daysSinceLastShower) {
-  if (daysSinceLastShower === 0) {
+// 박테리아 수 계산 (과학적(?) 모델)
+function calculateBacteriaCount(lastRecord, minutesSinceShower) {
+  // 초기 박테리아 수 = 100 - 마지막 샤워 점수
+  let initialBacteria = 100 - lastRecord.total_score
+  
+  // Cat Shower면 박테리아 +30 보너스 (대충 씻었으니까)
+  if (lastRecord.is_cat_shower) {
+    initialBacteria += 30
+  }
+  
+  // 최소 10마리는 있어야 함 (완전 무균은 불가능)
+  initialBacteria = Math.max(10, initialBacteria)
+  
+  // 증식률: 2시간(120분)마다 1.15배
+  // 공식: 현재 박테리아 = 초기 × (1.15 ^ (경과시간(분) ÷ 120))
+  const growthRate = 1.15
+  const intervalMinutes = 120
+  const currentBacteria = initialBacteria * Math.pow(growthRate, minutesSinceShower / intervalMinutes)
+  
+  // 분당 증가율 계산
+  const growthPerMinute = currentBacteria * (growthRate - 1) / intervalMinutes
+  
+  return {
+    count: Math.round(currentBacteria),
+    growthPerMinute: growthPerMinute.toFixed(1),
+    initialCount: Math.round(initialBacteria)
+  }
+}
+
+// 박테리아 수에 따른 위생 상태
+function getBacteriaStatus(bacteriaCount) {
+  if (bacteriaCount < 50) {
     return {
       emoji: '😊✨',
       title: 'Sparkling Clean!',
-      message: 'You just showered! Keep it up!',
+      message: 'Practically sterile! You\'re doing great!',
       bacteria: '🦠',
       bgColor: 'from-green-50 to-blue-50',
-      level: 'Minimal'
+      level: 'Minimal',
+      advice: 'Keep up this excellent hygiene routine! ✨'
     }
-  } else if (daysSinceLastShower === 1) {
+  } else if (bacteriaCount < 200) {
     return {
       emoji: '😊',
       title: 'Still Fresh!',
-      message: 'Looking good! Regular shower routine detected.',
-      bacteria: '🦠',
+      message: 'Bacteria levels are under control.',
+      bacteria: '🦠🦠',
       bgColor: 'from-blue-50 to-green-50',
-      level: 'Low'
+      level: 'Low',
+      advice: 'You\'re doing fine, but don\'t wait too long! 👍'
     }
-  } else if (daysSinceLastShower === 2) {
+  } else if (bacteriaCount < 1000) {
     return {
       emoji: '😐',
-      title: 'Getting a Bit Funky...',
-      message: 'Time to freshen up soon!',
-      bacteria: '🦠🦠',
+      title: 'Getting Funky...',
+      message: 'Your bacteria are starting to multiply.',
+      bacteria: '🦠🦠🦠',
       bgColor: 'from-yellow-50 to-orange-50',
-      level: 'Moderate'
+      level: 'Moderate',
+      advice: '⚠️ Consider showering soon. They\'re building houses now.'
     }
-  } else if (daysSinceLastShower === 3) {
+  } else if (bacteriaCount < 5000) {
     return {
       emoji: '😷',
-      title: 'Starting to Smell...',
-      message: 'Shower recommended ASAP!',
-      bacteria: '🦠🦠🦠',
+      title: 'You Should Shower!',
+      message: 'Bacteria colony detected on your skin!',
+      bacteria: '🦠🦠🦠🦠',
       bgColor: 'from-orange-50 to-red-50',
-      level: 'High'
+      level: 'High',
+      advice: '🚨 Shower NOW! Your bacteria have elected a mayor!'
     }
-  } else if (daysSinceLastShower === 4) {
+  } else if (bacteriaCount < 10000) {
     return {
       emoji: '🤢',
-      title: 'Bacteria Party! 🎉',
-      message: 'Your bacteria are throwing a party!',
-      bacteria: '🦠🦠🦠🦠',
+      title: 'Bacteria Civilization!',
+      message: 'Your bacteria have built a city!',
+      bacteria: '🦠🦠🦠🦠💩',
       bgColor: 'from-red-100 to-orange-100',
-      level: 'Very High'
+      level: 'Very High',
+      advice: '💀 URGENT! Your bacteria are filing for statehood!'
     }
   } else {
     return {
       emoji: '🤢💀',
       title: 'BIOHAZARD ALERT!',
-      message: 'SHOWER NOW! This is not a drill!',
-      bacteria: '🦠🦠🦠🦠💩',
+      message: 'You are now a biological weapon!',
+      bacteria: '🦠🦠🦠🦠🦠💩💀',
       bgColor: 'from-red-200 to-pink-200',
-      level: 'CRITICAL'
+      level: 'CRITICAL',
+      advice: '☢️ SHOWER IMMEDIATELY! Your bacteria have launched a space program!'
     }
+  }
+}
+
+// 시간에 따른 재밌는 메시지
+function getFunnyTimeMessage(hours, bacteriaCount) {
+  if (hours < 12) {
+    return '👏 Fresh out of the shower! Your skin is grateful!'
+  } else if (hours < 24) {
+    return '😌 Still in the safe zone. But tick-tock...'
+  } else if (hours < 36) {
+    return `⏰ ${hours} hours... Your bacteria are getting comfortable.`
+  } else if (hours < 48) {
+    return `😰 ${hours} hours! Your bacteria are throwing a house party! 🎉`
+  } else if (hours < 72) {
+    return `🤢 ${hours} hours... Your bacteria have elected a government.`
+  } else {
+    return `💀 ${hours} hours!!! Your bacteria have developed written language!`
   }
 }
 
@@ -128,7 +180,7 @@ function updateHygieneStatusCard() {
     const content = `
       <div class="text-6xl mb-3">🚿</div>
       <h3 class="text-2xl font-bold text-gray-800 mb-2">No Shower Records Yet</h3>
-      <p class="text-gray-600 mb-3">Add your first shower record to track your hygiene!</p>
+      <p class="text-gray-600 mb-3">Add your first shower record to start tracking bacteria!</p>
       <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
         <span class="text-3xl">🦠</span>
         <span class="text-sm text-gray-600 ml-2">Bacteria Level: Unknown</span>
@@ -140,27 +192,71 @@ function updateHygieneStatusCard() {
 
   // 마지막 샤워 기록 찾기
   const lastRecord = allRecords[0]
-  const lastDate = new Date(lastRecord.date)
-  const today = new Date()
-  const daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
+  const lastDateTime = new Date(lastRecord.date + ' ' + lastRecord.start_time)
+  const now = new Date()
+  const minutesSince = Math.floor((now - lastDateTime) / (1000 * 60))
+  const hoursSince = Math.floor(minutesSince / 60)
+  const daysSince = Math.floor(hoursSince / 24)
   
-  const status = getCurrentHygieneStatus(daysSince)
+  // 박테리아 계산
+  const bacteria = calculateBacteriaCount(lastRecord, minutesSince)
+  const status = getBacteriaStatus(bacteria.count)
+  const funnyMessage = getFunnyTimeMessage(hoursSince, bacteria.count)
   
   const card = document.getElementById('hygiene-status-card')
-  card.className = `bg-gradient-to-r ${status.bgColor} rounded-lg shadow-lg p-6 mb-6`
+  card.className = `bg-gradient-to-r ${status.bgColor} rounded-lg shadow-lg p-6 mb-6 border-2 ${bacteria.count > 5000 ? 'border-red-500 animate-pulse' : 'border-transparent'}`
+  
+  // 시간 표시 문자열
+  let timeString = ''
+  if (minutesSince < 60) {
+    timeString = `${minutesSince} minute${minutesSince !== 1 ? 's' : ''} ago`
+  } else if (hoursSince < 24) {
+    timeString = `${hoursSince} hour${hoursSince !== 1 ? 's' : ''} ago`
+  } else {
+    timeString = `${daysSince} day${daysSince !== 1 ? 's' : ''} ago (${hoursSince}h)`
+  }
   
   const content = `
     <div class="text-6xl mb-3">${status.emoji}</div>
     <h3 class="text-2xl font-bold text-gray-800 mb-2">${status.title}</h3>
-    <p class="text-gray-600 mb-3">${status.message}</p>
-    <div class="flex items-center justify-center gap-4">
+    <p class="text-gray-600 mb-2">${status.message}</p>
+    <p class="text-sm text-gray-500 italic mb-4">${funnyMessage}</p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div class="bg-white rounded-lg shadow-sm p-3">
+        <div class="text-2xl mb-1">${status.bacteria}</div>
+        <div class="text-xs text-gray-500">Bacteria Level</div>
+        <div class="text-sm font-bold text-gray-900">${status.level}</div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm p-3">
+        <div class="text-2xl mb-1">🧫</div>
+        <div class="text-xs text-gray-500">Current Population</div>
+        <div class="text-sm font-bold text-gray-900">${bacteria.count.toLocaleString()} cells</div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm p-3">
+        <div class="text-2xl mb-1">📈</div>
+        <div class="text-xs text-gray-500">Growth Rate</div>
+        <div class="text-sm font-bold text-gray-900">+${bacteria.growthPerMinute}/min</div>
+      </div>
+    </div>
+    
+    <div class="flex items-center justify-center gap-3 flex-wrap">
       <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
-        <span class="text-2xl">${status.bacteria}</span>
-        <span class="text-sm text-gray-600 ml-2">Bacteria: ${status.level}</span>
+        <span class="text-sm text-gray-600">⏰ Last shower: <strong>${timeString}</strong></span>
       </div>
       <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
-        <span class="text-sm text-gray-600">Last shower: <strong>${daysSince === 0 ? 'Today' : daysSince + ' day' + (daysSince > 1 ? 's' : '') + ' ago'}</strong></span>
+        <span class="text-sm text-gray-600">🎯 Last score: <strong>${lastRecord.total_score}pts (${lastRecord.grade})</strong></span>
       </div>
+      ${lastRecord.is_cat_shower ? '<div class="inline-block px-3 py-2 bg-orange-100 rounded-full shadow-sm"><span class="text-sm text-orange-800">🐱 Cat Shower detected!</span></div>' : ''}
+    </div>
+    
+    <div class="mt-4 p-3 ${bacteria.count > 1000 ? 'bg-red-50 border-l-4 border-red-500' : 'bg-blue-50 border-l-4 border-blue-500'} rounded">
+      <p class="text-sm ${bacteria.count > 1000 ? 'text-red-800' : 'text-blue-800'}">
+        <strong>💡 ${bacteria.count > 1000 ? 'URGENT' : 'Advice'}:</strong> ${status.advice}
+      </p>
+      ${bacteria.count > 1000 ? `<p class="text-xs text-red-600 mt-1">Started with ${bacteria.initialCount} bacteria, now at ${bacteria.count.toLocaleString()}! That's ${Math.round(bacteria.count / bacteria.initialCount)}x growth! 📊</p>` : ''}
     </div>
   `
   
