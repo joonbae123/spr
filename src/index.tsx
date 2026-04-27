@@ -11,9 +11,9 @@ const app = new Hono<{ Bindings: Bindings }>()
 // CORS 설정
 app.use('/api/*', cors())
 
-// 정적 파일 서빙
-app.use('/static/*', serveStatic({ root: './public' }))
-app.use('/favicon.ico', serveStatic({ path: './public/favicon.ico' }))
+// 정적 파일 서빙 (Cloudflare Pages는 dist 루트부터 시작)
+app.use('/static/*', serveStatic({ root: './' }))
+app.use('/favicon.ico', serveStatic({ path: './favicon.ico' }))
 
 // ============================================
 // API: Shower Records Search (Date 필터링 지원)
