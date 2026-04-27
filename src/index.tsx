@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { serveStatic } from 'hono/cloudflare-workers'
 
 type Bindings = {
   DB: D1Database;
@@ -11,8 +10,7 @@ const app = new Hono<{ Bindings: Bindings }>()
 // CORS 설정
 app.use('/api/*', cors())
 
-// 정적 파일 서빙 (IPR과 동일한 방식)
-app.use('/static/*', serveStatic({ root: './public' }))
+// 정적 파일은 Cloudflare Pages가 자동으로 서빙 (_routes.json 제외)
 
 // ============================================
 // API: Shower Records Search (Date 필터링 지원)
