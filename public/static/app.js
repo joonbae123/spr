@@ -164,11 +164,11 @@ function showFilterResult(filters) {
   
   let text = ''
   if (filters.startDate && filters.endDate) {
-    text = `${filters.startDate} ~ ${filters.endDate} 기간의 기록 ${filters.count}records`
+    text = `${filters.count} records from ${filters.startDate} to ${filters.endDate}`
   } else if (filters.startDate) {
-    text = `${filters.startDate} 이후 기록 ${filters.count}records`
+    text = `${filters.count} records since ${filters.startDate}`
   } else if (filters.endDate) {
-    text = `${filters.endDate} 이전 기록 ${filters.count}records`
+    text = `${filters.count} records until ${filters.endDate}`
   }
   
   resultText.textContent = text
@@ -206,7 +206,7 @@ function renderRecords() {
   const container = document.getElementById('records-list')
   
   if (allRecords.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 text-center py-8">아직 Shower Records이 없습니다.</p>'
+    container.innerHTML = '<p class="text-gray-500 text-center py-8">No shower records yet.</p>'
     return
   }
   
@@ -217,7 +217,7 @@ function renderRecords() {
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">소요Time</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completeness</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
@@ -256,10 +256,10 @@ function renderRecords() {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-center">
                 <div class="flex items-center justify-center space-x-2">
-                  <button onclick="editRecord(${record.id})" class="text-blue-600 hover:text-blue-800" title="수정">
+                  <button onclick="editRecord(${record.id})" class="text-blue-600 hover:text-blue-800" title="Edit">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button onclick="deleteRecord(${record.id})" class="text-red-600 hover:text-red-800" title="삭제">
+                  <button onclick="deleteRecord(${record.id})" class="text-red-600 hover:text-red-800" title="Delete">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
@@ -384,16 +384,16 @@ function renderCatShowerStats() {
       
       <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
         <div>
-          <div class="text-sm text-gray-600">Total Showers 횟수</div>
-          <div class="text-2xl font-bold text-blue-600">${stats.total_showers}회</div>
+          <div class="text-sm text-gray-600">Total Showers</div>
+          <div class="text-2xl font-bold text-blue-600">${stats.total_showers}</div>
         </div>
         <div class="text-4xl">🚿</div>
       </div>
       
       <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
         <div>
-          <div class="text-sm text-gray-600">Avg 샤워 Frequency</div>
-          <div class="text-2xl font-bold text-green-600">${stats.avg_days_between}일</div>
+          <div class="text-sm text-gray-600">Avg Shower Frequency</div>
+          <div class="text-2xl font-bold text-green-600">${stats.avg_days_between} days</div>
         </div>
         <div class="text-4xl">📅</div>
       </div>
@@ -403,7 +403,7 @@ function renderCatShowerStats() {
           <div class="flex items-start space-x-2">
             <i class="fas fa-exclamation-triangle text-red-600 mt-1"></i>
             <div class="text-sm text-red-800">
-              <strong>Warning:</strong> Cat Shower Rate이 너무 높습니다! 
+              <strong>Warning:</strong> Cat Shower rate is too high! 
               Please shower more properly! 🧼
             </div>
           </div>
@@ -459,18 +459,18 @@ async function handleAddRecord(e) {
       // 성공 메시지 (pts수 표시)
       const { scores } = result
       alert(`
-Shower Records이 추가되었습니다! 🚿
+Shower record added successfully! 🚿
 
 Score: ${scores.total_score}pts
 Grade: ${scores.grade}
-${scores.is_cat_shower ? '\n⚠️ Cat Shower로 판정되었습니다!' : '\n✅ Normal 샤워입니다!'}
+${scores.is_cat_shower ? '\n⚠️ Detected as Cat Shower!' : '\n✅ Normal shower!'}
       `)
     } else {
-      alert('Add Shower Record에 실패했습니다.')
+      alert('Failed to add shower record.')
     }
   } catch (error) {
     console.error('Error adding record:', error)
-    alert('Add Shower Record 중 오류가 발생했습니다.')
+    alert('Error occurred while adding shower record.')
   }
 }
 
@@ -491,7 +491,7 @@ function hideAddForm() {
 // Shower Records 삭제
 // ============================================
 async function deleteRecord(id) {
-  if (!confirm('정말로 이 기록을 삭제하시겠습니까?')) {
+  if (!confirm('Are you sure you want to delete this record?')) {
     return
   }
   
@@ -503,7 +503,7 @@ async function deleteRecord(id) {
     const result = await response.json()
     
     if (result.success) {
-      alert('기록이 삭제되었습니다.')
+      alert('Record deleted successfully.')
       await loadRecords(currentFilters.startDate, currentFilters.endDate)
       await loadStats()
       
@@ -511,11 +511,11 @@ async function deleteRecord(id) {
         renderScorecard()
       }
     } else {
-      alert('기록 삭제에 실패했습니다.')
+      alert('Failed to delete record.')
     }
   } catch (error) {
     console.error('Error deleting record:', error)
-    alert('기록 삭제 중 오류가 발생했습니다.')
+    alert('Error occurred while deleting record.')
   }
 }
 
@@ -571,13 +571,13 @@ async function editRecord(id) {
           renderScorecard()
         }
         
-        alert(`기록이 수정되었습니다!\n\nScore: ${result.scores.total_score}pts\nGrade: ${result.scores.grade}`)
+        alert(`Record updated successfully!\n\nScore: ${result.scores.total_score}pts\nGrade: ${result.scores.grade}`)
       } else {
-        alert('기록 수정에 실패했습니다.')
+        alert('Failed to update record.')
       }
     } catch (error) {
       console.error('Error updating record:', error)
-      alert('기록 수정 중 오류가 발생했습니다.')
+      alert('Error occurred while updating record.')
     }
   }
   
@@ -598,8 +598,8 @@ function updateFooterStats() {
     : 0
   
   const statsHtml = `
-    <p>Total Records: <span class="font-medium text-gray-900">${totalRecords}records</span></p>
-    <p>Avg pts수: <span class="font-medium text-gray-900">${avgScore}pts</span></p>
+    <p>Total Records: <span class="font-medium text-gray-900">${totalRecords} records</span></p>
+    <p>Avg Score: <span class="font-medium text-gray-900">${avgScore}pts</span></p>
     <p>Cat Shower Rate: <span class="font-medium ${catShowerRate > 30 ? 'text-red-600' : 'text-green-600'}">${catShowerRate}%</span></p>
   `
   
