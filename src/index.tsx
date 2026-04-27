@@ -66,7 +66,7 @@ app.get('/api/records', async (c) => {
 })
 
 // ============================================
-// API: 새 Add Shower Record
+// API: Add new shower record
 // ============================================
 app.post('/api/records', async (c) => {
   const { DB } = c.env
@@ -559,10 +559,10 @@ app.get('/', (c) => {
             </div>
         </div>
 
-        <!-- Add Shower Record 모달 -->
+        <!-- Add Record Modal -->
         <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
             <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Add Shower Record</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Add Record</h3>
                 <form id="add-form" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
@@ -626,7 +626,7 @@ app.get('/', (c) => {
                         <ul class="space-y-2 text-sm text-gray-600">
                             <li><a href="#" onclick="showTab('report'); return false;" class="hover:text-blue-600">Report View</a></li>
                             <li><a href="#" onclick="showTab('scorecard'); return false;" class="hover:text-blue-600">Scorecard View</a></li>
-                            <li><a href="#" onclick="showAddForm(); return false;" class="hover:text-blue-600">Add Shower Record</a></li>
+                            <li><a href="#" onclick="showAddForm(); return false;" class="hover:text-blue-600 transition-colors">Add Record</a></li>
                         </ul>
                     </div>
                     
