@@ -479,6 +479,19 @@ app.get('/', (c) => {
 
         <!-- Report 탭 -->
         <div id="content-report" class="max-w-7xl mx-auto px-4 py-6">
+            <!-- 현재 위생 상태 카드 -->
+            <div id="hygiene-status-card" class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg shadow-lg p-6 mb-6">
+                <div class="text-center" id="hygiene-status-content">
+                    <div class="text-6xl mb-3">😊</div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Loading...</h3>
+                    <p class="text-gray-600 mb-3">Checking your hygiene status...</p>
+                    <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
+                        <span class="text-3xl">🦠</span>
+                        <span class="text-sm text-gray-600 ml-2">Bacteria Level: ?</span>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Date 필터 섹션 -->
             <div class="bg-white rounded-lg shadow p-4 mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">
@@ -541,6 +554,19 @@ app.get('/', (c) => {
 
         <!-- Scorecard 탭 -->
         <div id="content-scorecard" class="max-w-7xl mx-auto px-4 py-6 hidden">
+            <!-- 전체 위생 등급 카드 -->
+            <div id="overall-hygiene-card" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-6">
+                <div class="text-center" id="overall-hygiene-content">
+                    <div class="text-6xl mb-3">😊</div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Overall Hygiene Level</h3>
+                    <p class="text-gray-600 mb-3">Based on your average performance</p>
+                    <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
+                        <span class="text-3xl">🦠🦠🦠</span>
+                        <span class="text-sm text-gray-600 ml-2">Avg Score: ?</span>
+                    </div>
+                </div>
+            </div>
+            
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6" id="grade-cards"></div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-lg shadow p-6">

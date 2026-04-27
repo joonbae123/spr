@@ -10,6 +10,209 @@ let currentFilters = {
 }
 
 // ============================================
+// 위생 상태 계산 함수들
+// ============================================
+
+// 현재 위생 상태 (마지막 샤워 후 경과일 기반)
+function getCurrentHygieneStatus(daysSinceLastShower) {
+  if (daysSinceLastShower === 0) {
+    return {
+      emoji: '😊✨',
+      title: 'Sparkling Clean!',
+      message: 'You just showered! Keep it up!',
+      bacteria: '🦠',
+      bgColor: 'from-green-50 to-blue-50',
+      level: 'Minimal'
+    }
+  } else if (daysSinceLastShower === 1) {
+    return {
+      emoji: '😊',
+      title: 'Still Fresh!',
+      message: 'Looking good! Regular shower routine detected.',
+      bacteria: '🦠',
+      bgColor: 'from-blue-50 to-green-50',
+      level: 'Low'
+    }
+  } else if (daysSinceLastShower === 2) {
+    return {
+      emoji: '😐',
+      title: 'Getting a Bit Funky...',
+      message: 'Time to freshen up soon!',
+      bacteria: '🦠🦠',
+      bgColor: 'from-yellow-50 to-orange-50',
+      level: 'Moderate'
+    }
+  } else if (daysSinceLastShower === 3) {
+    return {
+      emoji: '😷',
+      title: 'Starting to Smell...',
+      message: 'Shower recommended ASAP!',
+      bacteria: '🦠🦠🦠',
+      bgColor: 'from-orange-50 to-red-50',
+      level: 'High'
+    }
+  } else if (daysSinceLastShower === 4) {
+    return {
+      emoji: '🤢',
+      title: 'Bacteria Party! 🎉',
+      message: 'Your bacteria are throwing a party!',
+      bacteria: '🦠🦠🦠🦠',
+      bgColor: 'from-red-100 to-orange-100',
+      level: 'Very High'
+    }
+  } else {
+    return {
+      emoji: '🤢💀',
+      title: 'BIOHAZARD ALERT!',
+      message: 'SHOWER NOW! This is not a drill!',
+      bacteria: '🦠🦠🦠🦠💩',
+      bgColor: 'from-red-200 to-pink-200',
+      level: 'CRITICAL'
+    }
+  }
+}
+
+// 누적 평균 점수 기반 전체 위생 등급
+function getOverallHygieneGrade(avgScore) {
+  if (avgScore >= 90) {
+    return {
+      emoji: '😇✨',
+      title: 'Hygiene Master!',
+      message: "Cleaner than 99% of cats! You're a legend!",
+      bacteria: '🦠',
+      bgColor: 'from-green-100 to-emerald-100',
+      bacteriaCount: 1
+    }
+  } else if (avgScore >= 80) {
+    return {
+      emoji: '😊',
+      title: 'Good Hygiene!',
+      message: 'Keep up the excellent work!',
+      bacteria: '🦠🦠',
+      bgColor: 'from-blue-100 to-cyan-100',
+      bacteriaCount: 2
+    }
+  } else if (avgScore >= 70) {
+    return {
+      emoji: '😐',
+      title: 'Could Be Better...',
+      message: 'Try to improve your shower routine!',
+      bacteria: '🦠🦠🦠',
+      bgColor: 'from-yellow-100 to-amber-100',
+      bacteriaCount: 3
+    }
+  } else if (avgScore >= 60) {
+    return {
+      emoji: '😷',
+      title: 'Bacteria Are Multiplying...',
+      message: 'Your hygiene needs serious attention!',
+      bacteria: '🦠🦠🦠🦠',
+      bgColor: 'from-orange-100 to-red-100',
+      bacteriaCount: 4
+    }
+  } else {
+    return {
+      emoji: '🤢',
+      title: 'Your Bacteria Have Names Now!',
+      message: "They've formed a civilization on your skin!",
+      bacteria: '🦠🦠🦠🦠💩',
+      bgColor: 'from-red-200 to-pink-200',
+      bacteriaCount: 5
+    }
+  }
+}
+
+// 현재 위생 상태 카드 업데이트
+function updateHygieneStatusCard() {
+  if (allRecords.length === 0) {
+    const content = `
+      <div class="text-6xl mb-3">🚿</div>
+      <h3 class="text-2xl font-bold text-gray-800 mb-2">No Shower Records Yet</h3>
+      <p class="text-gray-600 mb-3">Add your first shower record to track your hygiene!</p>
+      <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
+        <span class="text-3xl">🦠</span>
+        <span class="text-sm text-gray-600 ml-2">Bacteria Level: Unknown</span>
+      </div>
+    `
+    document.getElementById('hygiene-status-content').innerHTML = content
+    return
+  }
+
+  // 마지막 샤워 기록 찾기
+  const lastRecord = allRecords[0]
+  const lastDate = new Date(lastRecord.date)
+  const today = new Date()
+  const daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
+  
+  const status = getCurrentHygieneStatus(daysSince)
+  
+  const card = document.getElementById('hygiene-status-card')
+  card.className = `bg-gradient-to-r ${status.bgColor} rounded-lg shadow-lg p-6 mb-6`
+  
+  const content = `
+    <div class="text-6xl mb-3">${status.emoji}</div>
+    <h3 class="text-2xl font-bold text-gray-800 mb-2">${status.title}</h3>
+    <p class="text-gray-600 mb-3">${status.message}</p>
+    <div class="flex items-center justify-center gap-4">
+      <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
+        <span class="text-2xl">${status.bacteria}</span>
+        <span class="text-sm text-gray-600 ml-2">Bacteria: ${status.level}</span>
+      </div>
+      <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
+        <span class="text-sm text-gray-600">Last shower: <strong>${daysSince === 0 ? 'Today' : daysSince + ' day' + (daysSince > 1 ? 's' : '') + ' ago'}</strong></span>
+      </div>
+    </div>
+  `
+  
+  document.getElementById('hygiene-status-content').innerHTML = content
+}
+
+// 전체 위생 등급 카드 업데이트
+function updateOverallHygieneCard() {
+  if (!allStats.avg_score) {
+    const content = `
+      <div class="text-6xl mb-3">📊</div>
+      <h3 class="text-2xl font-bold text-gray-800 mb-2">Overall Hygiene Level</h3>
+      <p class="text-gray-600 mb-3">No data yet. Start tracking your showers!</p>
+      <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
+        <span class="text-3xl">🦠</span>
+        <span class="text-sm text-gray-600 ml-2">Avg Score: -</span>
+      </div>
+    `
+    document.getElementById('overall-hygiene-content').innerHTML = content
+    return
+  }
+
+  const avgScore = parseFloat(allStats.avg_score)
+  const grade = getOverallHygieneGrade(avgScore)
+  
+  const card = document.getElementById('overall-hygiene-card')
+  card.className = `bg-gradient-to-r ${grade.bgColor} rounded-lg shadow-lg p-6 mb-6`
+  
+  // Cat Shower 경고
+  const catShowerWarning = allStats.cat_shower_rate >= 30 ? `
+    <div class="mt-4 p-3 bg-orange-100 border-l-4 border-orange-500 rounded">
+      <p class="text-sm text-orange-800">
+        <strong>⚠️ Warning:</strong> ${allStats.cat_shower_rate}% Cat Shower rate detected! That's not real cleaning!
+      </p>
+    </div>
+  ` : ''
+  
+  const content = `
+    <div class="text-6xl mb-3">${grade.emoji}</div>
+    <h3 class="text-2xl font-bold text-gray-800 mb-2">${grade.title}</h3>
+    <p class="text-gray-600 mb-3">${grade.message}</p>
+    <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
+      <span class="text-2xl">${grade.bacteria}</span>
+      <span class="text-sm text-gray-600 ml-2">Avg Score: <strong>${avgScore.toFixed(1)} pts</strong></span>
+    </div>
+    ${catShowerWarning}
+  `
+  
+  document.getElementById('overall-hygiene-content').innerHTML = content
+}
+
+// ============================================
 // Reset
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -288,12 +491,14 @@ function renderRecords() {
   
   container.innerHTML = html
   updateFooterStats()
+  updateHygieneStatusCard()  // 위생 상태 카드 업데이트
 }
 
 // ============================================
 // Scorecard 렌더링
 // ============================================
 function renderScorecard() {
+  updateOverallHygieneCard()  // 전체 위생 등급 카드 업데이트
   renderGradeCards()
   renderTrendChart()
   renderCatShowerStats()
