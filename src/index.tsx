@@ -621,10 +621,10 @@ app.get('/', (c) => {
                     
                     <!-- 오른쪽: 통계 -->
                     <div>
-                        <h3 class="text-sm font-semibold text-gray-900 mb-3">현재 Status</h3>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Current Status</h3>
                         <div class="text-sm text-gray-600 space-y-1" id="footer-stats">
                             <p>Total Records: <span class="font-medium text-gray-900">-</span></p>
-                            <p>Avg pts수: <span class="font-medium text-gray-900">-</span></p>
+                            <p>Avg Points: <span class="font-medium text-gray-900">-</span></p>
                             <p>Cat Shower Rate: <span class="font-medium text-red-600">-</span></p>
                         </div>
                     </div>
