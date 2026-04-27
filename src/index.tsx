@@ -606,7 +606,7 @@ app.get('/', (c) => {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- 왼쪽: 로고 & 설명 -->
                     <div>
-                        <img src="/static/waiv-logo-clean.png?v=2" alt="WAIV Logo" class="h-8 mb-3">
+                        <img src="/waiv-logo-clean.png" alt="WAIV Logo" class="h-8 mb-3">
                         <p class="text-sm text-gray-600">
                             SPR (Shower Performance Report)<br>
                             Data-driven Hygiene Improvement Solution
