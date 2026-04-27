@@ -439,22 +439,21 @@ app.get('/', (c) => {
     </head>
     <body class="bg-gray-50 min-h-screen flex flex-col">
         <!-- Header -->
-        <div class="bg-white shadow-sm border-b">
-            <div class="max-w-7xl mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <img src="/static/waiv-logo.png" alt="WAIV Logo" class="h-10">
-                        <div class="border-l border-gray-300 pl-4">
-                            <h1 class="text-2xl font-bold text-gray-900 flex items-center">
-                                <i class="fas fa-shower text-blue-500 mr-2"></i>
-                                SPR
-                            </h1>
-                            <p class="text-sm text-gray-500">Shower Performance Report</p>
-                        </div>
+        <div class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-6 py-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <img src="/static/waiv-logo.png" alt="WAIV Logo" class="h-10 mb-4">
+                        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                            Shower Performance Report
+                        </h1>
+                        <p class="text-gray-600">
+                            Individual Shower Habit Reports & Hygiene Tracking
+                        </p>
                     </div>
-                    <button onclick="showAddForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all">
+                    <button onclick="showAddForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 transition-all shadow-sm">
                         <i class="fas fa-plus"></i>
-                        <span>Add Shower Record</span>
+                        <span>Add Record</span>
                     </button>
                 </div>
             </div>
@@ -469,15 +468,17 @@ app.get('/', (c) => {
             </div>
         </div>
 
-        <!-- 탭 -->
-        <div class="max-w-7xl mx-auto px-4 mt-6">
-            <div class="flex space-x-4 border-b">
-                <button onclick="showTab('report')" id="tab-report" class="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600">
-                    <i class="fas fa-list mr-2"></i>Report
-                </button>
-                <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-chart-bar mr-2"></i>Scorecard
-                </button>
+        <!-- Tabs -->
+        <div class="bg-white shadow-sm mb-6">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="flex border-b">
+                    <button onclick="showTab('report')" id="tab-report" class="px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500">
+                        <i class="fas fa-chart-line mr-2"></i>Report
+                    </button>
+                    <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
+                        <i class="fas fa-trophy mr-2"></i>Scorecard
+                    </button>
+                </div>
             </div>
         </div>
 
