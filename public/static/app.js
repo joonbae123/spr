@@ -190,8 +190,26 @@ function updateHygieneStatusCard() {
     return
   }
 
-  // 마지막 샤워 기록 찾기
-  const lastRecord = allRecords[0]
+  // 마지막 실제 샤워 기록 찾기 (body_soap=1 OR hair_wash=1)
+  const lastShowerRecord = allRecords.find(record => record.body_soap === 1 || record.hair_wash === 1)
+  
+  if (!lastShowerRecord) {
+    // 샤워 기록이 없고 양치질/발만 씻은 기록만 있는 경우
+    const content = `
+      <div class="text-6xl mb-3">🦷🦶</div>
+      <h3 class="text-2xl font-bold text-gray-800 mb-2">No Actual Shower Yet</h3>
+      <p class="text-gray-600 mb-3">You only have teeth/feet hygiene records. Time for a real shower!</p>
+      <div class="inline-block px-4 py-2 bg-orange-100 rounded-full shadow-sm border-2 border-orange-500">
+        <span class="text-3xl">🦠🦠🦠🦠💩</span>
+        <span class="text-sm text-orange-800 ml-2">Bacteria Level: MAXIMUM</span>
+      </div>
+      <p class="text-sm text-orange-600 mt-3">⚠️ Warning: Brushing teeth doesn't count as showering!</p>
+    `
+    document.getElementById('hygiene-status-content').innerHTML = content
+    return
+  }
+  
+  const lastRecord = lastShowerRecord
   const lastDateTime = new Date(lastRecord.date + ' ' + lastRecord.start_time)
   const now = new Date()
   const minutesSince = Math.floor((now - lastDateTime) / (1000 * 60))
@@ -566,7 +584,16 @@ function renderRecords() {
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
-                ${record.is_cat_shower ? '<span class="text-orange-600">🐱 Cat Shower</span>' : '<span class="text-green-600">✓ Normal</span>'}
+                ${(() => {
+                  const isActualShower = record.body_soap === 1 || record.hair_wash === 1
+                  if (!isActualShower) {
+                    return '<span class="text-gray-500">🦷🦶 Partial Hygiene</span>'
+                  } else if (record.is_cat_shower) {
+                    return '<span class="text-orange-600">🐱 Cat Shower</span>'
+                  } else {
+                    return '<span class="text-green-600">✓ Normal Shower</span>'
+                  }
+                })()}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-center">
                 <div class="flex items-center justify-center space-x-2">

@@ -350,13 +350,16 @@ async function calculateScores(data: any, DB: D1Database) {
     duration_score = 70  // 너무 김 (물 낭비)
   }
 
-  // 3. Frequency pts수 (마지막 샤워 이후 경과일)
+  // 3. Frequency pts수 (마지막 실제 샤워 이후 경과일)
   let frequency_score = 100  // 첫 기록이면 기본 100점
   let days_since_last = 1
 
   try {
+    // 마지막 실제 샤워 기록만 찾기 (양치질/발만 씻기 제외)
+    // body_soap=1 OR hair_wash=1인 기록만
     const lastShower = await DB.prepare(`
-      SELECT date FROM shower_records 
+      SELECT date, start_time FROM shower_records 
+      WHERE body_soap = 1 OR hair_wash = 1
       ORDER BY date DESC, start_time DESC 
       LIMIT 1
     `).first()
@@ -387,22 +390,27 @@ async function calculateScores(data: any, DB: D1Database) {
     console.error('Error calculating frequency:', error)
   }
 
-  // 4. Score (가중 Avg)
+  // 4. 실제 샤워 여부 판단
+  const isActualShower = body_soap || hair_wash  // 몸/머리 중 하나라도 씻어야 샤워로 인정
+  
+  // 5. Score (가중 Avg) - 실제 샤워인 경우에만 계산
   const total_score = Math.round(
     completeness_score * 0.4 +
     frequency_score * 0.3 +
     duration_score * 0.3
   )
 
-  // 5. Grade 산정
+  // 6. Grade 산정
   let grade = 'D'
   if (total_score >= 90) grade = 'S'
   else if (total_score >= 80) grade = 'A'
   else if (total_score >= 70) grade = 'B'
   else if (total_score >= 60) grade = 'C'
 
-  // 6. Cat Shower 판정
-  const is_cat_shower = completeness_score < 50 && duration < 8
+  // 7. Cat Shower 판정
+  // - 실제 샤워(body_soap or hair_wash)를 했는데 5분 미만이면 Cat Shower
+  // - 양치질/발만 씻기는 샤워가 아니므로 Cat Shower 판정 안 함
+  const is_cat_shower = isActualShower && duration < 5
 
   return {
     completeness_score: Math.round(completeness_score),
@@ -411,7 +419,8 @@ async function calculateScores(data: any, DB: D1Database) {
     total_score,
     grade,
     is_cat_shower,
-    days_since_last
+    days_since_last,
+    is_actual_shower: isActualShower  // 실제 샤워 여부 반환
   }
 }
 
