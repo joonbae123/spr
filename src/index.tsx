@@ -82,6 +82,7 @@ app.post('/api/records', async (c) => {
 
     // pts수 계산
     const scores = calculateScores({
+      date,
       body_soap,
       hair_wash,
       teeth_brush,
@@ -350,7 +351,7 @@ async function calculateScores(data: any, DB: D1Database) {
   }
 
   // 3. Frequency pts수 (마지막 샤워 이후 경과일)
-  let frequency_score = 100
+  let frequency_score = 100  // 첫 기록이면 기본 100점
   let days_since_last = 1
 
   try {
@@ -362,11 +363,15 @@ async function calculateScores(data: any, DB: D1Database) {
 
     if (lastShower) {
       const lastDate = new Date(lastShower.date as string)
-      const today = new Date()
-      days_since_last = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+      const currentDate = new Date(data.date)  // 입력된 date 사용
+      days_since_last = Math.floor((currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
 
       // Frequency pts수 계산
-      if (days_since_last === 1) {
+      if (days_since_last <= 0) {
+        // 같은 날 또는 과거 날짜: 하루에 여러 번 샤워 (정상)
+        frequency_score = 100
+        days_since_last = 0
+      } else if (days_since_last === 1) {
         frequency_score = 100
       } else if (days_since_last === 2) {
         frequency_score = 80
