@@ -223,6 +223,7 @@ function renderRecords() {
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">총점</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">등급</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">액션</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -253,6 +254,16 @@ function renderRecords() {
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 ${record.is_cat_shower ? '<span class="text-orange-600">🐱 고양이샤워</span>' : '<span class="text-green-600">✓ 정상</span>'}
               </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <div class="flex items-center justify-center space-x-2">
+                  <button onclick="editRecord(${record.id})" class="text-blue-600 hover:text-blue-800" title="수정">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button onclick="deleteRecord(${record.id})" class="text-red-600 hover:text-red-800" title="삭제">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -261,6 +272,7 @@ function renderRecords() {
   `
   
   container.innerHTML = html
+  updateFooterStats()
 }
 
 // ============================================
@@ -473,6 +485,128 @@ function showAddForm() {
 function hideAddForm() {
   document.getElementById('add-modal').classList.remove('flex')
   document.getElementById('add-modal').classList.add('hidden')
+}
+
+// ============================================
+// 샤워 기록 삭제
+// ============================================
+async function deleteRecord(id) {
+  if (!confirm('정말로 이 기록을 삭제하시겠습니까?')) {
+    return
+  }
+  
+  try {
+    const response = await fetch(`/api/records/${id}`, {
+      method: 'DELETE'
+    })
+    
+    const result = await response.json()
+    
+    if (result.success) {
+      alert('기록이 삭제되었습니다.')
+      await loadRecords(currentFilters.startDate, currentFilters.endDate)
+      await loadStats()
+      
+      if (currentTab === 'scorecard') {
+        renderScorecard()
+      }
+    } else {
+      alert('기록 삭제에 실패했습니다.')
+    }
+  } catch (error) {
+    console.error('Error deleting record:', error)
+    alert('기록 삭제 중 오류가 발생했습니다.')
+  }
+}
+
+// ============================================
+// 샤워 기록 수정
+// ============================================
+async function editRecord(id) {
+  const record = allRecords.find(r => r.id === id)
+  if (!record) return
+  
+  // 모달에 기존 값 채우기
+  document.getElementById('input-date').value = record.date
+  document.getElementById('input-time').value = record.start_time
+  document.getElementById('input-duration').value = record.duration
+  document.getElementById('input-body-soap').checked = record.body_soap === 1
+  document.getElementById('input-hair-wash').checked = record.hair_wash === 1
+  document.getElementById('input-teeth-brush').checked = record.teeth_brush === 1
+  document.getElementById('input-feet-wash').checked = record.feet_wash === 1
+  
+  // 폼 제출 이벤트 변경 (수정 모드)
+  const form = document.getElementById('add-form')
+  form.onsubmit = async (e) => {
+    e.preventDefault()
+    
+    const data = {
+      date: document.getElementById('input-date').value,
+      start_time: document.getElementById('input-time').value,
+      duration: parseInt(document.getElementById('input-duration').value),
+      body_soap: document.getElementById('input-body-soap').checked,
+      hair_wash: document.getElementById('input-hair-wash').checked,
+      teeth_brush: document.getElementById('input-teeth-brush').checked,
+      feet_wash: document.getElementById('input-feet-wash').checked
+    }
+    
+    try {
+      const response = await fetch(`/api/records/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        hideAddForm()
+        form.reset()
+        form.onsubmit = handleAddRecord // 원래 함수로 복원
+        
+        await loadRecords(currentFilters.startDate, currentFilters.endDate)
+        await loadStats()
+        
+        if (currentTab === 'scorecard') {
+          renderScorecard()
+        }
+        
+        alert(`기록이 수정되었습니다!\n\n총점: ${result.scores.total_score}점\n등급: ${result.scores.grade}`)
+      } else {
+        alert('기록 수정에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Error updating record:', error)
+      alert('기록 수정 중 오류가 발생했습니다.')
+    }
+  }
+  
+  showAddForm()
+}
+
+// ============================================
+// 푸터 통계 업데이트
+// ============================================
+function updateFooterStats() {
+  const totalRecords = allRecords.length
+  const avgScore = totalRecords > 0
+    ? (allRecords.reduce((sum, r) => sum + r.total_score, 0) / totalRecords).toFixed(1)
+    : 0
+  const catShowers = allRecords.filter(r => r.is_cat_shower === 1).length
+  const catShowerRate = totalRecords > 0
+    ? ((catShowers / totalRecords) * 100).toFixed(1)
+    : 0
+  
+  const statsHtml = `
+    <p>총 기록: <span class="font-medium text-gray-900">${totalRecords}개</span></p>
+    <p>평균 점수: <span class="font-medium text-gray-900">${avgScore}점</span></p>
+    <p>고양이샤워 비율: <span class="font-medium ${catShowerRate > 30 ? 'text-red-600' : 'text-green-600'}">${catShowerRate}%</span></p>
+  `
+  
+  const footerStats = document.getElementById('footer-stats')
+  if (footerStats) {
+    footerStats.innerHTML = statsHtml
+  }
 }
 
 // ============================================

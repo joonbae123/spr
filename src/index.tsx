@@ -147,6 +147,123 @@ app.post('/api/records', async (c) => {
 })
 
 // ============================================
+// API: 샤워 기록 삭제
+// ============================================
+app.delete('/api/records/:id', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+
+  try {
+    await DB.prepare(`DELETE FROM shower_records WHERE id = ?`).bind(id).run()
+
+    return c.json({
+      success: true,
+      message: 'Record deleted successfully'
+    })
+  } catch (error) {
+    console.error('Error deleting record:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to delete record'
+    }, 500)
+  }
+})
+
+// ============================================
+// API: 샤워 기록 수정
+// ============================================
+app.put('/api/records/:id', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+
+  try {
+    const data = await c.req.json()
+    const {
+      date,
+      start_time,
+      duration,
+      body_soap,
+      hair_wash,
+      teeth_brush,
+      feet_wash
+    } = data
+
+    // 점수 재계산
+    const scores = await calculateScores({
+      body_soap,
+      hair_wash,
+      teeth_brush,
+      feet_wash,
+      duration
+    }, DB)
+
+    const {
+      completeness_score,
+      duration_score,
+      frequency_score,
+      total_score,
+      grade,
+      is_cat_shower,
+      days_since_last
+    } = scores
+
+    // 데이터 업데이트
+    await DB.prepare(`
+      UPDATE shower_records SET
+        date = ?,
+        start_time = ?,
+        duration = ?,
+        body_soap = ?,
+        hair_wash = ?,
+        teeth_brush = ?,
+        feet_wash = ?,
+        completeness_score = ?,
+        frequency_score = ?,
+        duration_score = ?,
+        total_score = ?,
+        grade = ?,
+        is_cat_shower = ?,
+        days_since_last = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      date, start_time, duration,
+      body_soap ? 1 : 0,
+      hair_wash ? 1 : 0,
+      teeth_brush ? 1 : 0,
+      feet_wash ? 1 : 0,
+      completeness_score,
+      frequency_score,
+      duration_score,
+      total_score,
+      grade,
+      is_cat_shower ? 1 : 0,
+      days_since_last,
+      id
+    ).run()
+
+    return c.json({
+      success: true,
+      message: 'Record updated successfully',
+      scores: {
+        completeness_score,
+        frequency_score,
+        duration_score,
+        total_score,
+        grade,
+        is_cat_shower
+      }
+    })
+  } catch (error) {
+    console.error('Error updating record:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to update record'
+    }, 500)
+  }
+})
+
+// ============================================
 // API: 통계 조회
 // ============================================
 app.get('/api/stats', async (c) => {
@@ -315,21 +432,31 @@ app.get('/', (c) => {
             body { font-family: 'Inter', sans-serif; }
         </style>
     </head>
-    <body class="bg-gray-50">
+    <body class="bg-gray-50 min-h-screen flex flex-col">
         <!-- 헤더 -->
         <div class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-4 py-4">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-shower text-white text-xl"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-900">SPR</h1>
+                    <div class="flex items-center space-x-4">
+                        <img src="https://www.genspark.ai/api/files/s/kc7vBVhe" alt="WAIV Logo" class="h-10">
+                        <div class="border-l border-gray-300 pl-4">
+                            <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                                <i class="fas fa-shower text-blue-500 mr-2"></i>
+                                SPR
+                            </h1>
                             <p class="text-sm text-gray-500">Shower Performance Report</p>
                         </div>
                     </div>
-                    <button onclick="showAddForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <button onclick="showAddForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all">
+                        <i class="fas fa-plus"></i>
+                        <span>샤워 기록 추가</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="flex-grow">
                         <i class="fas fa-plus"></i>
                         <span>샤워 기록 추가</span>
                     </button>
@@ -472,6 +599,48 @@ app.get('/', (c) => {
                     </div>
                 </form>
             </div>
+        </div>
+
+        <!-- 푸터 -->
+        <footer class="bg-white border-t mt-12">
+            <div class="max-w-7xl mx-auto px-4 py-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 왼쪽: 로고 & 설명 -->
+                    <div>
+                        <img src="https://www.genspark.ai/api/files/s/kc7vBVhe" alt="WAIV Logo" class="h-8 mb-3">
+                        <p class="text-sm text-gray-600">
+                            SPR (Shower Performance Report)<br>
+                            데이터 기반 위생 습관 개선 솔루션
+                        </p>
+                    </div>
+                    
+                    <!-- 중앙: 빠른 링크 -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">빠른 링크</h3>
+                        <ul class="space-y-2 text-sm text-gray-600">
+                            <li><a href="#" onclick="showTab('report'); return false;" class="hover:text-blue-600">Report 보기</a></li>
+                            <li><a href="#" onclick="showTab('scorecard'); return false;" class="hover:text-blue-600">Scorecard 보기</a></li>
+                            <li><a href="#" onclick="showAddForm(); return false;" class="hover:text-blue-600">샤워 기록 추가</a></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- 오른쪽: 통계 -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">현재 상태</h3>
+                        <div class="text-sm text-gray-600 space-y-1" id="footer-stats">
+                            <p>총 기록: <span class="font-medium text-gray-900">-</span></p>
+                            <p>평균 점수: <span class="font-medium text-gray-900">-</span></p>
+                            <p>고양이샤워 비율: <span class="font-medium text-red-600">-</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="border-t mt-6 pt-6 text-center text-sm text-gray-500">
+                    <p>© 2026 WAIV SPR Project. Made with 💙 for HW's hygiene improvement.</p>
+                    <p class="mt-1">IPR Parody Edition | v1.1.0</p>
+                </div>
+            </div>
+        </footer>
         </div>
 
         <script src="/static/app.js"></script>
