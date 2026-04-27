@@ -441,7 +441,7 @@ app.get('/', (c) => {
             <div class="max-w-7xl mx-auto px-6 py-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <img src="/static/waiv-logo-clean.png?v=2" alt="WAIV Logo" class="h-10 mb-4">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALMAAABYCAYAAACqSbymAAAADXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAADXRpZEFUeAHs7WlsU9cVx/+lhMzeKSrqFCqr5VT8w0taRbvTQOlEUPvhJupRoRqkMVtxqpTZIgqrTQ57p4nknkIZ3qENI+qZoBmYtFCgxaQ4tFB0YlR1VGdUZktndjVsZ1TnOI92BLBfvmUubB8s2hWe49j+/dv3Zl7fe/c///s557zzXFBKIAVQAilACmhgAilgAilhAqmhAqnhAqnhA6nhBKnhBKnhA6nkBankBqnkBanlB6nlBanlCKnlCKnlC6nlC6nlD6nlD6nlEKnlEKnnE6nnE6nnFKnnFKnnFqnnFqnnGKnnGKnnHKnnHKnnIKnnIKnnJKnnJKnnKqnnKqnnLqnnLqnnMannaannanXxzRYBVHlFIDw+PjkyQmYwPJQyMp91Y1RpY6MkI6dJU6dJSRVJUqdRVaVJWadRVedZVedZV+dZWOdZW+daWOdaW+dcWueaWuebWudaW+dbW+dYW+dYXOdYXOdZXOdZXudZXudaXudaXudbXudcXOdcXuddXudcX+ddX+deX+deXOdeXOdeXudeXudeXOfcXOfdXOfdXufdXufcXufdXufeXufcX+feX+fcX+feYOfeYOfeYefeYefeZefeZefeZufeZufeZ+feZ+feaOfeaOfeaufeau" alt="WAIV Logo" class="h-10 mb-4">
                         <h1 class="text-3xl font-bold text-gray-800 mb-2">
                             Shower Performance Report
                         </h1>
