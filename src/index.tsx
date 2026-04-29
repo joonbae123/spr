@@ -76,6 +76,7 @@ app.post('/api/records', async (c) => {
       duration,
       body_soap,
       hair_wash,
+      dry_shampoo,
       teeth_brush,
       feet_wash
     } = data
@@ -85,6 +86,7 @@ app.post('/api/records', async (c) => {
       date,
       body_soap,
       hair_wash,
+      dry_shampoo,
       teeth_brush,
       feet_wash,
       duration
@@ -104,14 +106,15 @@ app.post('/api/records', async (c) => {
     const result = await DB.prepare(`
       INSERT INTO shower_records (
         date, start_time, duration,
-        body_soap, hair_wash, teeth_brush, feet_wash,
+        body_soap, hair_wash, dry_shampoo, teeth_brush, feet_wash,
         completeness_score, frequency_score, duration_score, total_score, grade,
         is_cat_shower, days_since_last
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       date, start_time, duration,
       body_soap ? 1 : 0, 
-      hair_wash ? 1 : 0, 
+      hair_wash ? 1 : 0,
+      dry_shampoo ? 1 : 0,
       teeth_brush ? 1 : 0, 
       feet_wash ? 1 : 0,
       completeness_score,
@@ -330,11 +333,18 @@ app.get('/api/stats', async (c) => {
 // pts수 계산 함수
 // ============================================
 async function calculateScores(data: any, DB: D1Database) {
-  const { body_soap, hair_wash, teeth_brush, feet_wash, duration } = data
+  const { body_soap, hair_wash, dry_shampoo, teeth_brush, feet_wash, duration } = data
 
   // 1. Completeness pts수 (Checklist)
-  const checkedItems = [body_soap, hair_wash, teeth_brush, feet_wash].filter(Boolean).length
-  const completeness_score = (checkedItems / 4) * 100
+  // Dry Shampoo는 0.5점만 인정 (Hair Wash의 절반 효과)
+  let completenessPoints = 0
+  if (body_soap) completenessPoints += 1
+  if (hair_wash) completenessPoints += 1
+  else if (dry_shampoo) completenessPoints += 0.5  // 머리 안 감았지만 드라이샴푸는 함
+  if (teeth_brush) completenessPoints += 1
+  if (feet_wash) completenessPoints += 1
+  
+  const completeness_score = (completenessPoints / 4) * 100
 
   // 2. Time pts수 (10-20min이 이상적)
   let duration_score = 100
@@ -392,6 +402,7 @@ async function calculateScores(data: any, DB: D1Database) {
 
   // 4. 실제 샤워 여부 판단
   const isActualShower = body_soap || hair_wash  // 몸/머리 중 하나라도 씻어야 샤워로 인정
+  const isDryShampooOnly = dry_shampoo && !hair_wash && !body_soap  // 드라이샴푸만 사용
   
   // 5. Score (가중 Avg) - 실제 샤워인 경우에만 계산
   const total_score = Math.round(
@@ -420,7 +431,8 @@ async function calculateScores(data: any, DB: D1Database) {
     grade,
     is_cat_shower,
     days_since_last,
-    is_actual_shower: isActualShower  // 실제 샤워 여부 반환
+    is_actual_shower: isActualShower,  // 실제 샤워 여부 반환
+    is_dry_shampoo_only: isDryShampooOnly  // 드라이샴푸만 사용 여부
   }
 }
 
@@ -618,6 +630,10 @@ app.get('/', (c) => {
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-hair-wash" class="rounded">
                             <span>Hair Wash 🧴</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="input-dry-shampoo" class="rounded">
+                            <span>Dry Shampoo 🧴✨ <span class="text-xs text-gray-500">(0.5x effectiveness)</span></span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-teeth-brush" class="rounded">

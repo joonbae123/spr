@@ -23,6 +23,12 @@ function calculateBacteriaCount(lastRecord, minutesSinceShower) {
     initialBacteria += 30
   }
   
+  // Dry Shampoo만 사용한 경우 박테리아 -30% 감소 효과만 (냄새만 가림)
+  const isDryShampooOnly = lastRecord.dry_shampoo === 1 && lastRecord.hair_wash === 0 && lastRecord.body_soap === 0
+  if (isDryShampooOnly) {
+    initialBacteria = initialBacteria * 0.7  // 30% 감소 효과
+  }
+  
   // 최소 10마리는 있어야 함 (완전 무균은 불가능)
   initialBacteria = Math.max(10, initialBacteria)
   
@@ -586,7 +592,11 @@ function renderRecords() {
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 ${(() => {
                   const isActualShower = record.body_soap === 1 || record.hair_wash === 1
-                  if (!isActualShower) {
+                  const isDryShampooOnly = record.dry_shampoo === 1 && !isActualShower
+                  
+                  if (isDryShampooOnly) {
+                    return '<span class="text-yellow-600">🧴✨ Dry Shampoo Only</span>'
+                  } else if (!isActualShower) {
                     return '<span class="text-gray-500">🦷🦶 Partial Hygiene</span>'
                   } else if (record.is_cat_shower) {
                     return '<span class="text-orange-600">🐱 Cat Shower</span>'
@@ -770,6 +780,7 @@ async function handleAddRecord(e) {
     duration: parseInt(document.getElementById('input-duration').value),
     body_soap: document.getElementById('input-body-soap').checked,
     hair_wash: document.getElementById('input-hair-wash').checked,
+    dry_shampoo: document.getElementById('input-dry-shampoo').checked,
     teeth_brush: document.getElementById('input-teeth-brush').checked,
     feet_wash: document.getElementById('input-feet-wash').checked
   }
@@ -889,6 +900,7 @@ async function editRecord(id) {
       duration: parseInt(document.getElementById('input-duration').value),
       body_soap: document.getElementById('input-body-soap').checked,
       hair_wash: document.getElementById('input-hair-wash').checked,
+      dry_shampoo: document.getElementById('input-dry-shampoo').checked,
       teeth_brush: document.getElementById('input-teeth-brush').checked,
       feet_wash: document.getElementById('input-feet-wash').checked
     }
@@ -959,6 +971,7 @@ function getChecklistIcons(record) {
   const icons = []
   if (record.body_soap) icons.push('🧼')
   if (record.hair_wash) icons.push('🧴')
+  else if (record.dry_shampoo) icons.push('🧴✨')  // 드라이샴푸 (머리 안 감은 경우만)
   if (record.teeth_brush) icons.push('🪥')
   if (record.feet_wash) icons.push('🦶')
   return icons.join(' ')
