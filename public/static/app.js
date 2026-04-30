@@ -1117,6 +1117,9 @@ async function editRecord(id) {
   // 폼 제출 이벤트 변경 (수정 모드)
   const form = document.getElementById('add-form')
   
+  // ⚠️ 중요: 기존 handleAddRecord 리스너 제거
+  form.removeEventListener('submit', handleAddRecord)
+  
   // 기존 이벤트 리스너 제거를 위해 새 핸들러 생성
   const editHandler = async (e) => {
     e.preventDefault()
@@ -1148,6 +1151,9 @@ async function editRecord(id) {
         
         // 수정 핸들러 제거
         form.removeEventListener('submit', editHandler)
+        
+        // 원래 추가 핸들러 다시 등록
+        form.addEventListener('submit', handleAddRecord)
         
         await loadRecords(currentFilters.startDate, currentFilters.endDate)
         await loadStats()
