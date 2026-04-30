@@ -296,8 +296,17 @@ app.get('/api/stats', async (c) => {
       SELECT 
         COUNT(*) as total_showers,
         SUM(CASE WHEN is_cat_shower = 1 THEN 1 ELSE 0 END) as cat_showers,
-        ROUND(AVG(days_since_last), 1) as avg_days_between
+        ROUND(AVG(days_since_last), 1) as avg_days_between_all
       FROM shower_records
+    `).first()
+
+    // 실제 샤워만 통계 (body_soap=1 OR hair_wash=1)
+    const actualShowerStats = await DB.prepare(`
+      SELECT 
+        COUNT(*) as actual_shower_count,
+        ROUND(AVG(days_since_last), 1) as avg_days_between_showers
+      FROM shower_records
+      WHERE body_soap = 1 OR hair_wash = 1
     `).first()
 
     // 최근 트렌드 (Last 30 Days)
@@ -317,6 +326,7 @@ app.get('/api/stats', async (c) => {
       stats: {
         gradeDistribution: gradeDistribution.results,
         catShowerStats,
+        actualShowerStats,
         recentTrend: recentTrend.results
       }
     })

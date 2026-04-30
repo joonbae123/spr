@@ -719,7 +719,8 @@ function renderTrendChart() {
 // ============================================
 function renderCatShowerStats() {
   const container = document.getElementById('cat-shower-stats')
-  const stats = allStats.catShowerStats || { total_showers: 0, cat_showers: 0, avg_days_between: 0 }
+  const stats = allStats.catShowerStats || { total_showers: 0, cat_showers: 0, avg_days_between_all: 0 }
+  const actualStats = allStats.actualShowerStats || { actual_shower_count: 0, avg_days_between_showers: 0 }
   
   const catShowerRate = stats.total_showers > 0 
     ? ((stats.cat_showers / stats.total_showers) * 100).toFixed(1)
@@ -737,16 +738,18 @@ function renderCatShowerStats() {
       
       <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
         <div>
-          <div class="text-sm text-gray-600">Total Showers</div>
+          <div class="text-sm text-gray-600">Total Records</div>
           <div class="text-2xl font-bold text-blue-600">${stats.total_showers}</div>
+          <div class="text-xs text-gray-500 mt-1">${actualStats.actual_shower_count} actual showers</div>
         </div>
         <div class="text-4xl">🚿</div>
       </div>
       
-      <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-        <div>
-          <div class="text-sm text-gray-600">Avg Shower Frequency</div>
-          <div class="text-2xl font-bold text-green-600">${stats.avg_days_between} days</div>
+      <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg border-2 border-green-200">
+        <div class="flex-1">
+          <div class="text-sm font-semibold text-green-700">Shower Frequency</div>
+          <div class="text-2xl font-bold text-green-600">${actualStats.avg_days_between_showers || 0} days</div>
+          <div class="text-xs text-gray-500 mt-1">All hygiene: ${stats.avg_days_between_all || 0} days</div>
         </div>
         <div class="text-4xl">📅</div>
       </div>
