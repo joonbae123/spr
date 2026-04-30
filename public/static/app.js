@@ -63,12 +63,37 @@ function parseDateTimeInTimezone(dateStr, timeStr) {
 
 // 두 날짜 사이의 분 차이 계산 (시간대 고려)
 function getMinutesDifference(dateStr1, timeStr1, dateStr2, timeStr2) {
-  const tz = getTimezone()
-  
   const dt1 = new Date(`${dateStr1}T${timeStr1}:00`)
   const dt2 = new Date(`${dateStr2}T${timeStr2}:00`)
   
   return Math.floor((dt2 - dt1) / (1000 * 60))
+}
+
+// 설정된 시간대 기준으로 기록 시간과 현재 시간 차이 계산
+function getMinutesSinceRecord(dateStr, timeStr) {
+  const tz = getTimezone()
+  
+  // 기록 시간 문자열 (YYYY-MM-DD HH:mm)
+  const recordStr = `${dateStr} ${timeStr}:00`
+  
+  // 현재 시간을 설정된 시간대로 변환
+  const now = new Date()
+  const nowStr = now.toLocaleString('en-CA', { 
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).replace(',', '')
+  
+  // 둘 다 같은 시간대 기준으로 변환된 문자열이므로 Date 객체로 변환 가능
+  const recordDate = new Date(recordStr)
+  const nowDate = new Date(nowStr)
+  
+  return Math.floor((nowDate - recordDate) / (1000 * 60))
 }
 
 // ============================================
@@ -297,14 +322,8 @@ function updateHygieneStatusCard() {
   
   const lastRecord = lastShowerRecord
   
-  // 시간대 기준으로 현재 시간과 마지막 샤워 시간 계산
-  const tz = getTimezone()
-  const now = new Date()
-  
-  // 마지막 샤워 시간을 시간대 기준으로 파싱
-  const lastDateTime = new Date(lastRecord.date + 'T' + lastRecord.start_time)
-  
-  const minutesSince = Math.floor((now - lastDateTime) / (1000 * 60))
+  // 시간대를 고려한 정확한 시간 차이 계산
+  const minutesSince = getMinutesSinceRecord(lastRecord.date, lastRecord.start_time)
   const hoursSince = Math.floor(minutesSince / 60)
   const daysSince = Math.floor(hoursSince / 24)
   
