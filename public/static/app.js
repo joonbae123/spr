@@ -77,6 +77,7 @@ function getMinutesDifference(dateStr1, timeStr1, dateStr2, timeStr2) {
 let currentTab = 'report'
 let allRecords = []
 let allStats = {}
+let allBadges = []
 let currentFilters = {
   startDate: null,
   endDate: null
@@ -434,6 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 데이터 로드
   loadRecords()
   loadStats()
+  loadBadges()  // 뱃지 로드
   
   // 폼 제출 이벤트
   document.getElementById('add-form').addEventListener('submit', handleAddRecord)
@@ -585,6 +587,22 @@ async function loadStats() {
 }
 
 // ============================================
+// Badges 로드
+// ============================================
+async function loadBadges() {
+  try {
+    const response = await fetch('/api/badges')
+    const data = await response.json()
+    
+    if (data.success) {
+      allBadges = data.badges
+    }
+  } catch (error) {
+    console.error('Failed to load badges:', error)
+  }
+}
+
+// ============================================
 // Shower Records 렌더링
 // ============================================
 function renderRecords() {
@@ -695,6 +713,7 @@ function renderRecords() {
 function renderScorecard() {
   updateOverallHygieneCard()  // 전체 위생 등급 카드 업데이트
   renderGradeCards()
+  renderBadges()  // 뱃지 렌더링
   renderTrendChart()
   renderCatShowerStats()
 }
@@ -728,6 +747,117 @@ function renderGradeCards() {
   }).join('')
   
   container.innerHTML = html
+}
+
+// ============================================
+// Badges 렌더링
+// ============================================
+function renderBadges() {
+  const container = document.getElementById('badges-container')
+  
+  if (allBadges.length === 0) {
+    container.innerHTML = '<p class="text-gray-500">No badges data yet.</p>'
+    return
+  }
+  
+  // 타입별로 그룹화
+  const good = allBadges.filter(b => b.type === 'good')
+  const bad = allBadges.filter(b => b.type === 'bad')
+  const funny = allBadges.filter(b => b.type === 'funny')
+  const hidden = allBadges.filter(b => b.type === 'hidden')
+  
+  const html = `
+    <!-- Good Badges -->
+    <div class="mb-6">
+      <h4 class="text-md font-bold text-green-700 mb-3">✨ Good Badges</h4>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        ${good.map(badge => renderBadgeCard(badge)).join('')}
+      </div>
+    </div>
+    
+    <!-- Bad Badges -->
+    <div class="mb-6">
+      <h4 class="text-md font-bold text-red-700 mb-3">💀 Bad Badges (Shame!)</h4>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        ${bad.map(badge => renderBadgeCard(badge)).join('')}
+      </div>
+    </div>
+    
+    <!-- Funny Badges -->
+    <div class="mb-6">
+      <h4 class="text-md font-bold text-blue-700 mb-3">😂 Funny Badges</h4>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        ${funny.map(badge => renderBadgeCard(badge)).join('')}
+      </div>
+    </div>
+    
+    <!-- Hidden Badges -->
+    <div>
+      <h4 class="text-md font-bold text-purple-700 mb-3">🎯 Hidden Badges</h4>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        ${hidden.map(badge => renderBadgeCard(badge)).join('')}
+      </div>
+    </div>
+  `
+  
+  container.innerHTML = html
+}
+
+function renderBadgeCard(badge) {
+  const unlocked = badge.unlocked
+  const progress = Math.round(badge.progress) || 0
+  
+  // 잠김/해제 스타일
+  const cardClass = unlocked 
+    ? 'bg-white border-2 border-gray-200 hover:shadow-lg' 
+    : 'bg-gray-100 border-2 border-gray-300 opacity-60'
+  
+  const iconClass = unlocked ? 'text-4xl' : 'text-4xl grayscale'
+  const titleClass = unlocked ? 'text-gray-900 font-bold' : 'text-gray-500'
+  
+  return `
+    <div class="${cardClass} rounded-lg p-3 text-center transition-all cursor-pointer" title="${badge.description}">
+      <div class="${iconClass} mb-2">${unlocked ? badge.icon : '🔒'}</div>
+      <div class="${titleClass} text-xs mb-1">${badge.name}</div>
+      ${!unlocked && progress > 0 ? `
+        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+          <div class="bg-blue-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">${progress}%</div>
+      ` : ''}
+      ${unlocked ? '<div class="text-xs text-green-600 font-bold mt-1">✓ Unlocked</div>' : ''}
+    </div>
+  `
+}
+
+// ============================================
+// 새 뱃지 확인 (기록 추가 후)
+// ============================================
+function checkNewBadges(scores) {
+  // 이전 뱃지 상태 저장
+  const previousBadges = JSON.parse(localStorage.getItem('previousBadges') || '[]')
+  const currentBadges = allBadges.filter(b => b.unlocked).map(b => b.id)
+  
+  // 새로 획득한 뱃지 찾기
+  const newBadges = currentBadges.filter(id => !previousBadges.includes(id))
+  
+  if (newBadges.length > 0) {
+    // 새 뱃지 정보 가져오기
+    const badgeInfo = allBadges.filter(b => newBadges.includes(b.id))
+    
+    // 알림 표시
+    const badgeNames = badgeInfo.map(b => `${b.icon} ${b.name}`).join('\n')
+    alert(`
+🎉 New Badge${newBadges.length > 1 ? 's' : ''} Unlocked!
+
+${badgeNames}
+
+Check the Scorecard tab to see all your badges!
+    `)
+  }
+  
+  // 현재 뱃지 상태 저장
+  localStorage.setItem('previousBadges', JSON.stringify(currentBadges))
 }
 
 // ============================================
@@ -870,11 +1000,15 @@ async function handleAddRecord(e) {
       // 데이터 새로고침
       await loadRecords()
       await loadStats()
+      await loadBadges()  // 뱃지 다시 로드
       
       // Scorecard 탭이면 다시 렌더링
       if (currentTab === 'scorecard') {
         renderScorecard()
       }
+      
+      // 새로 획득한 뱃지 체크
+      checkNewBadges(result.scores)
       
       // 성공 메시지 (pts수 표시)
       const { scores } = result

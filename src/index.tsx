@@ -352,6 +352,279 @@ app.get('/api/stats', async (c) => {
 })
 
 // ============================================
+// API: Badges
+// ============================================
+app.get('/api/badges', async (c) => {
+  const { DB } = c.env
+
+  try {
+    // 모든 기록 가져오기
+    const allRecords = await DB.prepare(`
+      SELECT * FROM shower_records ORDER BY date DESC, start_time DESC
+    `).all()
+
+    // 통계 계산
+    const stats = await DB.prepare(`
+      SELECT 
+        COUNT(*) as total_count,
+        ROUND(AVG(total_score), 1) as avg_score,
+        SUM(CASE WHEN is_cat_shower = 1 THEN 1 ELSE 0 END) as cat_shower_count,
+        SUM(CASE WHEN body_soap = 1 THEN 1 ELSE 0 END) as body_soap_count,
+        SUM(CASE WHEN dry_shampoo = 1 THEN 1 ELSE 0 END) as dry_shampoo_count,
+        SUM(CASE WHEN cat_shower = 1 THEN 1 ELSE 0 END) as face_wash_count,
+        SUM(CASE WHEN body_soap = 1 OR hair_wash = 1 THEN 1 ELSE 0 END) as actual_shower_count
+      FROM shower_records
+    `).first()
+
+    // 뱃지 체크
+    const badges = await checkBadges(allRecords.results, stats, DB)
+
+    return c.json({
+      success: true,
+      badges
+    })
+  } catch (error) {
+    console.error('Error fetching badges:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to fetch badges'
+    }, 500)
+  }
+})
+
+// ============================================
+// 뱃지 체크 함수
+// ============================================
+async function checkBadges(records: any[], stats: any, DB: D1Database) {
+  const badges: any[] = []
+  
+  // 뱃지 정의
+  const BADGE_DEFINITIONS = [
+    // ✨ 좋은 뱃지
+    { id: 'hygiene_master', name: 'Hygiene Master', icon: '🏆', type: 'good', description: 'Maintain 90+ average score' },
+    { id: 'perfect_week', name: 'Perfect Week', icon: '⭐', type: 'good', description: '7 days of S grade in a row' },
+    { id: 'diamond_clean', name: 'Diamond Clean', icon: '💎', type: 'good', description: '30 days of A+ grade' },
+    { id: 'hot_streak', name: 'Hot Streak', icon: '🔥', type: 'good', description: '10 consecutive normal showers' },
+    { id: 'shower_enthusiast', name: 'Shower Enthusiast', icon: '🚿', type: 'good', description: 'Complete 100 showers' },
+    { id: 'bacteria_killer', name: 'Bacteria Killer', icon: '✨', type: 'good', description: 'Keep bacteria under 1000 for 7 days' },
+    { id: 'soap_master', name: 'Soap Master', icon: '🧼', type: 'good', description: 'Use body soap 100 times' },
+    
+    // 💀 나쁜 뱃지
+    { id: 'bacteria_hotel', name: 'Bacteria Hotel', icon: '💩', type: 'bad', description: 'Reach 10,000+ bacteria' },
+    { id: 'microbe_mansion', name: 'Microbe Mansion', icon: '🦠', type: 'bad', description: 'Don\'t shower for 3+ days' },
+    { id: 'bio_hazard', name: 'Bio-Hazard', icon: '😷', type: 'bad', description: 'Average score below 60' },
+    { id: 'cat_shower_king', name: 'Cat Shower King', icon: '🐱', type: 'bad', description: 'Cat Shower rate 50%+' },
+    { id: 'the_unwashed', name: 'The Unwashed', icon: '💀', type: 'bad', description: 'Don\'t shower for 5+ days' },
+    { id: 'stink_lord', name: 'Stink Lord', icon: '🤢', type: 'bad', description: 'Reach 5,000+ bacteria 3 times' },
+    { id: 'bacteria_mayor', name: 'Bacteria City Mayor', icon: '🏚️', type: 'bad', description: '7 consecutive D grades' },
+    
+    // 😂 재밌는 뱃지
+    { id: 'night_owl', name: 'Night Owl', icon: '🌙', type: 'funny', description: 'Shower after midnight 10 times' },
+    { id: 'early_bird', name: 'Early Bird', icon: '🐓', type: 'funny', description: 'Shower before 6 AM 10 times' },
+    { id: 'speed_runner', name: 'Speed Runner', icon: '⚡', type: 'funny', description: 'Complete 20 showers under 3 min' },
+    { id: 'marathon_shower', name: 'Marathon Shower', icon: '🐌', type: 'funny', description: 'Shower for 40+ min 5 times' },
+    { id: 'dry_shampoo_addict', name: 'Dry Shampoo Addict', icon: '🧴', type: 'funny', description: 'Use dry shampoo 30 times' },
+    { id: 'face_splash_pro', name: 'Face Splash Pro', icon: '🐱', type: 'funny', description: 'Face wash only 50 times' },
+    { id: 'feet_only_gang', name: 'Feet Only Gang', icon: '🦶', type: 'funny', description: 'Feet wash only 10 times' },
+    
+    // 🎯 히든 뱃지
+    { id: 'lucky_7', name: 'Lucky 7', icon: '🎰', type: 'hidden', description: 'Score exactly 77 points' },
+    { id: 'perfect_score', name: 'Perfect Score', icon: '💯', type: 'hidden', description: 'Achieve 100 points' },
+    { id: 'full_rainbow', name: 'Full Rainbow', icon: '🌈', type: 'hidden', description: 'Get all grades S/A/B/C/D' },
+    { id: 'rock_bottom', name: 'Rock Bottom', icon: '📉', type: 'hidden', description: 'Score 30 or below' },
+    { id: 'comeback_kid', name: 'Comeback Kid', icon: '🔄', type: 'hidden', description: 'Get S grade right after D grade' }
+  ]
+  
+  // 각 뱃지 체크
+  for (const def of BADGE_DEFINITIONS) {
+    const unlocked = await checkBadgeCondition(def.id, records, stats, DB)
+    const progress = await getBadgeProgress(def.id, records, stats, DB)
+    
+    badges.push({
+      ...def,
+      unlocked,
+      progress
+    })
+  }
+  
+  return badges
+}
+
+// ============================================
+// 개별 뱃지 조건 체크
+// ============================================
+async function checkBadgeCondition(badgeId: string, records: any[], stats: any, DB: D1Database): Promise<boolean> {
+  const avgScore = parseFloat(stats.avg_score) || 0
+  const totalCount = parseInt(stats.total_count) || 0
+  const catShowerCount = parseInt(stats.cat_shower_count) || 0
+  const bodySoapCount = parseInt(stats.body_soap_count) || 0
+  const actualShowerCount = parseInt(stats.actual_shower_count) || 0
+  const dryShampooCount = parseInt(stats.dry_shampoo_count) || 0
+  const faceWashCount = parseInt(stats.face_wash_count) || 0
+  
+  switch (badgeId) {
+    // 좋은 뱃지
+    case 'hygiene_master':
+      return avgScore >= 90
+    
+    case 'perfect_week':
+      // 최근 7개 기록이 모두 S등급
+      return records.slice(0, 7).every((r: any) => r.grade === 'S') && records.length >= 7
+    
+    case 'diamond_clean':
+      // 최근 30개 기록이 모두 A 이상
+      return records.slice(0, 30).every((r: any) => ['S', 'A'].includes(r.grade)) && records.length >= 30
+    
+    case 'hot_streak':
+      // 최근 10개가 모두 실제 샤워
+      const recentShowers = records.slice(0, 10)
+      return recentShowers.every((r: any) => r.body_soap === 1 || r.hair_wash === 1) && records.length >= 10
+    
+    case 'shower_enthusiast':
+      return actualShowerCount >= 100
+    
+    case 'bacteria_killer':
+      // 최근 7개 기록 모두 A 이상 (박테리아 낮음)
+      return records.slice(0, 7).every((r: any) => ['S', 'A'].includes(r.grade)) && records.length >= 7
+    
+    case 'soap_master':
+      return bodySoapCount >= 100
+    
+    // 나쁜 뱃지
+    case 'bacteria_hotel':
+      // 5일 이상 안 씻은 기록이 있는지 체크
+      return records.some((r: any) => r.days_since_last >= 5)
+    
+    case 'microbe_mansion':
+      return records.some((r: any) => r.days_since_last >= 3)
+    
+    case 'bio_hazard':
+      return avgScore < 60 && totalCount >= 10
+    
+    case 'cat_shower_king':
+      const catRate = actualShowerCount > 0 ? (catShowerCount / actualShowerCount) * 100 : 0
+      return catRate >= 50 && actualShowerCount >= 10
+    
+    case 'the_unwashed':
+      return records.some((r: any) => r.days_since_last >= 5)
+    
+    case 'stink_lord':
+      // days_since_last >= 4인 기록이 3개 이상
+      return records.filter((r: any) => r.days_since_last >= 4).length >= 3
+    
+    case 'bacteria_mayor':
+      // 최근 7개가 모두 D등급
+      return records.slice(0, 7).every((r: any) => r.grade === 'D') && records.length >= 7
+    
+    // 재밌는 뱃지
+    case 'night_owl':
+      // 시간이 00:00 ~ 05:59인 기록 10개 이상
+      return records.filter((r: any) => {
+        const hour = parseInt(r.start_time.split(':')[0])
+        return hour >= 0 && hour < 6
+      }).length >= 10
+    
+    case 'early_bird':
+      return records.filter((r: any) => {
+        const hour = parseInt(r.start_time.split(':')[0])
+        return hour >= 4 && hour < 6
+      }).length >= 10
+    
+    case 'speed_runner':
+      return records.filter((r: any) => r.duration < 3).length >= 20
+    
+    case 'marathon_shower':
+      return records.filter((r: any) => r.duration >= 40).length >= 5
+    
+    case 'dry_shampoo_addict':
+      return dryShampooCount >= 30
+    
+    case 'face_splash_pro':
+      return faceWashCount >= 50
+    
+    case 'feet_only_gang':
+      // feet_wash만 체크한 기록
+      return records.filter((r: any) => 
+        r.feet_wash === 1 && 
+        r.body_soap === 0 && 
+        r.hair_wash === 0 && 
+        r.teeth_brush === 0
+      ).length >= 10
+    
+    // 히든 뱃지
+    case 'lucky_7':
+      return records.some((r: any) => r.total_score === 77)
+    
+    case 'perfect_score':
+      return records.some((r: any) => r.total_score === 100)
+    
+    case 'full_rainbow':
+      const grades = new Set(records.map((r: any) => r.grade))
+      return grades.has('S') && grades.has('A') && grades.has('B') && grades.has('C') && grades.has('D')
+    
+    case 'rock_bottom':
+      return records.some((r: any) => r.total_score <= 30)
+    
+    case 'comeback_kid':
+      // D 다음에 바로 S가 온 경우
+      for (let i = 0; i < records.length - 1; i++) {
+        if (records[i].grade === 'S' && records[i + 1].grade === 'D') {
+          return true
+        }
+      }
+      return false
+    
+    default:
+      return false
+  }
+}
+
+// ============================================
+// 뱃지 진행도 계산
+// ============================================
+async function getBadgeProgress(badgeId: string, records: any[], stats: any, DB: D1Database): Promise<number> {
+  const avgScore = parseFloat(stats.avg_score) || 0
+  const totalCount = parseInt(stats.total_count) || 0
+  const catShowerCount = parseInt(stats.cat_shower_count) || 0
+  const bodySoapCount = parseInt(stats.body_soap_count) || 0
+  const actualShowerCount = parseInt(stats.actual_shower_count) || 0
+  const dryShampooCount = parseInt(stats.dry_shampoo_count) || 0
+  const faceWashCount = parseInt(stats.face_wash_count) || 0
+  
+  switch (badgeId) {
+    case 'hygiene_master':
+      return Math.min(100, (avgScore / 90) * 100)
+    
+    case 'perfect_week':
+      const sGradeStreak = records.slice(0, 7).filter((r: any) => r.grade === 'S').length
+      return (sGradeStreak / 7) * 100
+    
+    case 'hot_streak':
+      const normalShowerStreak = records.slice(0, 10).filter((r: any) => r.body_soap === 1 || r.hair_wash === 1).length
+      return (normalShowerStreak / 10) * 100
+    
+    case 'shower_enthusiast':
+      return Math.min(100, (actualShowerCount / 100) * 100)
+    
+    case 'soap_master':
+      return Math.min(100, (bodySoapCount / 100) * 100)
+    
+    case 'speed_runner':
+      const speedCount = records.filter((r: any) => r.duration < 3).length
+      return Math.min(100, (speedCount / 20) * 100)
+    
+    case 'dry_shampoo_addict':
+      return Math.min(100, (dryShampooCount / 30) * 100)
+    
+    case 'face_splash_pro':
+      return Math.min(100, (faceWashCount / 50) * 100)
+    
+    default:
+      return 0
+  }
+}
+
+// ============================================
 // pts수 계산 함수
 // ============================================
 async function calculateScores(data: any, DB: D1Database) {
@@ -615,6 +888,17 @@ app.get('/', (c) => {
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6" id="grade-cards"></div>
+            
+            <!-- Badges Section -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">
+                    🏆 Achievements & Badges
+                </h3>
+                <div id="badges-container">
+                    <p class="text-gray-500">Loading badges...</p>
+                </div>
+            </div>
+            
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-4">Points Trend</h3>
