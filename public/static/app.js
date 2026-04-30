@@ -102,6 +102,12 @@ function calculateBacteriaCount(lastRecord, minutesSinceShower) {
     initialBacteria = initialBacteria * 0.7  // 30% 감소 효과
   }
   
+  // Face Wash만 사용한 경우 박테리아 -20% 감소 효과만 (얼굴만 헹굼)
+  const isFaceWashOnly = lastRecord.cat_shower === 1 && lastRecord.hair_wash === 0 && lastRecord.body_soap === 0
+  if (isFaceWashOnly) {
+    initialBacteria = initialBacteria * 0.8  // 20% 감소 효과
+  }
+  
   // 최소 10마리는 있어야 함 (완전 무균은 불가능)
   initialBacteria = Math.max(10, initialBacteria)
   
@@ -840,6 +846,7 @@ async function handleAddRecord(e) {
     body_soap: document.getElementById('input-body-soap').checked,
     hair_wash: document.getElementById('input-hair-wash').checked,
     dry_shampoo: document.getElementById('input-dry-shampoo').checked,
+    cat_shower: document.getElementById('input-cat-shower').checked,
     teeth_brush: document.getElementById('input-teeth-brush').checked,
     feet_wash: document.getElementById('input-feet-wash').checked
   }
@@ -949,6 +956,8 @@ async function editRecord(id) {
   document.getElementById('input-duration').value = record.duration
   document.getElementById('input-body-soap').checked = record.body_soap === 1
   document.getElementById('input-hair-wash').checked = record.hair_wash === 1
+  document.getElementById('input-dry-shampoo').checked = record.dry_shampoo === 1
+  document.getElementById('input-cat-shower').checked = record.cat_shower === 1
   document.getElementById('input-teeth-brush').checked = record.teeth_brush === 1
   document.getElementById('input-feet-wash').checked = record.feet_wash === 1
   
@@ -964,6 +973,7 @@ async function editRecord(id) {
       body_soap: document.getElementById('input-body-soap').checked,
       hair_wash: document.getElementById('input-hair-wash').checked,
       dry_shampoo: document.getElementById('input-dry-shampoo').checked,
+      cat_shower: document.getElementById('input-cat-shower').checked,
       teeth_brush: document.getElementById('input-teeth-brush').checked,
       feet_wash: document.getElementById('input-feet-wash').checked
     }
@@ -1035,6 +1045,7 @@ function getChecklistIcons(record) {
   if (record.body_soap) icons.push('🧼')
   if (record.hair_wash) icons.push('🧴')
   else if (record.dry_shampoo) icons.push('🧴✨')  // 드라이샴푸 (머리 안 감은 경우만)
+  if (record.cat_shower) icons.push('🐱💧')  // 얼굴만 물로 헹굼
   if (record.teeth_brush) icons.push('🪥')
   if (record.feet_wash) icons.push('🦶')
   return icons.join(' ')

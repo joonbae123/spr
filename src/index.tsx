@@ -77,6 +77,7 @@ app.post('/api/records', async (c) => {
       body_soap,
       hair_wash,
       dry_shampoo,
+      cat_shower,
       teeth_brush,
       feet_wash
     } = data
@@ -87,6 +88,7 @@ app.post('/api/records', async (c) => {
       body_soap,
       hair_wash,
       dry_shampoo,
+      cat_shower,
       teeth_brush,
       feet_wash,
       duration
@@ -106,15 +108,16 @@ app.post('/api/records', async (c) => {
     const result = await DB.prepare(`
       INSERT INTO shower_records (
         date, start_time, duration,
-        body_soap, hair_wash, dry_shampoo, teeth_brush, feet_wash,
+        body_soap, hair_wash, dry_shampoo, cat_shower, teeth_brush, feet_wash,
         completeness_score, frequency_score, duration_score, total_score, grade,
         is_cat_shower, days_since_last
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       date, start_time, duration,
       body_soap ? 1 : 0, 
       hair_wash ? 1 : 0,
       dry_shampoo ? 1 : 0,
+      cat_shower ? 1 : 0,
       teeth_brush ? 1 : 0, 
       feet_wash ? 1 : 0,
       completeness_score,
@@ -185,14 +188,19 @@ app.put('/api/records/:id', async (c) => {
       duration,
       body_soap,
       hair_wash,
+      dry_shampoo,
+      cat_shower,
       teeth_brush,
       feet_wash
     } = data
 
     // pts수 재계산
     const scores = await calculateScores({
+      date,
       body_soap,
       hair_wash,
+      dry_shampoo,
+      cat_shower,
       teeth_brush,
       feet_wash,
       duration
@@ -216,6 +224,8 @@ app.put('/api/records/:id', async (c) => {
         duration = ?,
         body_soap = ?,
         hair_wash = ?,
+        dry_shampoo = ?,
+        cat_shower = ?,
         teeth_brush = ?,
         feet_wash = ?,
         completeness_score = ?,
@@ -231,6 +241,8 @@ app.put('/api/records/:id', async (c) => {
       date, start_time, duration,
       body_soap ? 1 : 0,
       hair_wash ? 1 : 0,
+      dry_shampoo ? 1 : 0,
+      cat_shower ? 1 : 0,
       teeth_brush ? 1 : 0,
       feet_wash ? 1 : 0,
       completeness_score,
@@ -343,18 +355,19 @@ app.get('/api/stats', async (c) => {
 // pts수 계산 함수
 // ============================================
 async function calculateScores(data: any, DB: D1Database) {
-  const { body_soap, hair_wash, dry_shampoo, teeth_brush, feet_wash, duration } = data
+  const { body_soap, hair_wash, dry_shampoo, cat_shower, teeth_brush, feet_wash, duration } = data
 
   // 1. Completeness pts수 (Checklist)
-  // Dry Shampoo는 0.5점만 인정 (Hair Wash의 절반 효과)
+  // Dry Shampoo는 0.5점, Face Wash는 0.3점만 인정
   let completenessPoints = 0
   if (body_soap) completenessPoints += 1
   if (hair_wash) completenessPoints += 1
   else if (dry_shampoo) completenessPoints += 0.5  // 머리 안 감았지만 드라이샴푸는 함
+  if (cat_shower) completenessPoints += 0.3  // 얼굴만 물로 헹굼
   if (teeth_brush) completenessPoints += 1
   if (feet_wash) completenessPoints += 1
   
-  const completeness_score = (completenessPoints / 4) * 100
+  const completeness_score = (completenessPoints / 5) * 100
 
   // 2. Time pts수 (10-20min이 이상적)
   let duration_score = 100
@@ -728,6 +741,10 @@ app.get('/', (c) => {
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-dry-shampoo" class="rounded">
                             <span>Dry Shampoo 🧴✨ <span class="text-xs text-gray-500">(0.5x effectiveness)</span></span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="input-cat-shower" class="rounded">
+                            <span>Face Wash 🐱💧 <span class="text-xs text-gray-500">(0.3x effectiveness)</span></span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-teeth-brush" class="rounded">
