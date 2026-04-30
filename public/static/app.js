@@ -1,4 +1,77 @@
 // ============================================
+// 시간대 관리
+// ============================================
+
+// 기본 시간대 설정 (미국 동부)
+const DEFAULT_TIMEZONE = 'America/New_York'
+const DEFAULT_DATE_FORMAT = 'en-US'
+const DEFAULT_TIME_FORMAT = '12h'
+
+// LocalStorage에서 설정 가져오기
+function getTimezone() {
+  return localStorage.getItem('timezone') || DEFAULT_TIMEZONE
+}
+
+function getDateFormat() {
+  return localStorage.getItem('dateFormat') || DEFAULT_DATE_FORMAT
+}
+
+function getTimeFormat() {
+  return localStorage.getItem('timeFormat') || DEFAULT_TIME_FORMAT
+}
+
+// 현재 시간대 기준으로 현재 날짜/시간 가져오기
+function getCurrentDateInTimezone() {
+  const tz = getTimezone()
+  const now = new Date()
+  
+  // YYYY-MM-DD 형식으로 반환 (input[type=date]용)
+  return now.toLocaleDateString('en-CA', { timeZone: tz })
+}
+
+function getCurrentTimeInTimezone() {
+  const tz = getTimezone()
+  const now = new Date()
+  
+  // HH:MM 형식으로 반환 (input[type=time]용)
+  return now.toLocaleTimeString('en-GB', { 
+    timeZone: tz, 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  })
+}
+
+// 날짜/시간 파싱 (시간대 고려)
+function parseDateTimeInTimezone(dateStr, timeStr) {
+  const tz = getTimezone()
+  const dateTimeStr = `${dateStr}T${timeStr}:00`
+  
+  // 선택한 시간대의 날짜/시간을 UTC로 변환
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  
+  return new Date(dateTimeStr)
+}
+
+// 두 날짜 사이의 분 차이 계산 (시간대 고려)
+function getMinutesDifference(dateStr1, timeStr1, dateStr2, timeStr2) {
+  const tz = getTimezone()
+  
+  const dt1 = new Date(`${dateStr1}T${timeStr1}:00`)
+  const dt2 = new Date(`${dateStr2}T${timeStr2}:00`)
+  
+  return Math.floor((dt2 - dt1) / (1000 * 60))
+}
+
+// ============================================
 // 전역 변수
 // ============================================
 let currentTab = 'report'
@@ -216,8 +289,14 @@ function updateHygieneStatusCard() {
   }
   
   const lastRecord = lastShowerRecord
-  const lastDateTime = new Date(lastRecord.date + ' ' + lastRecord.start_time)
+  
+  // 시간대 기준으로 현재 시간과 마지막 샤워 시간 계산
+  const tz = getTimezone()
   const now = new Date()
+  
+  // 마지막 샤워 시간을 시간대 기준으로 파싱
+  const lastDateTime = new Date(lastRecord.date + 'T' + lastRecord.start_time)
+  
   const minutesSince = Math.floor((now - lastDateTime) / (1000 * 60))
   const hoursSince = Math.floor(minutesSince / 60)
   const daysSince = Math.floor(hoursSince / 24)
@@ -357,29 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 // 탭 전환
 // ============================================
-function showTab(tab) {
-  currentTab = tab
-  
-  // 탭 버튼 스타일
-  document.querySelectorAll('[id^="tab-"]').forEach(btn => {
-    btn.classList.remove('border-blue-500', 'text-blue-600')
-    btn.classList.add('border-transparent', 'text-gray-500')
-  })
-  document.getElementById(`tab-${tab}`).classList.remove('border-transparent', 'text-gray-500')
-  document.getElementById(`tab-${tab}`).classList.add('border-blue-500', 'text-blue-600')
-  
-  // 콘텐츠 표시
-  document.querySelectorAll('[id^="content-"]').forEach(content => {
-    content.classList.add('hidden')
-  })
-  document.getElementById(`content-${tab}`).classList.remove('hidden')
-  
-  // Scorecard 탭이면 차트 렌더링
-  if (tab === 'scorecard') {
-    renderScorecard()
-  }
-}
-
 // ============================================
 // Shower Records 로드 (Date 필터 지원)
 // ============================================
@@ -837,6 +893,10 @@ ${scores.is_cat_shower ? '\n⚠️ Detected as Cat Shower!' : '\n✅ Normal show
 function showAddForm() {
   document.getElementById('add-modal').classList.remove('hidden')
   document.getElementById('add-modal').classList.add('flex')
+  
+  // 시간대 기준으로 현재 날짜/시간 설정
+  document.getElementById('input-date').value = getCurrentDateInTimezone()
+  document.getElementById('input-time').value = getCurrentTimeInTimezone()
 }
 
 function hideAddForm() {
@@ -1012,3 +1072,117 @@ function getGradeTextColor(grade) {
   }
   return colors[grade] || colors['D']
 }
+
+// ============================================
+// Settings 관련 함수
+// ============================================
+
+function showTab(tabName) {
+  currentTab = tabName
+  
+  // 모든 탭 숨기기
+  document.getElementById('content-report').classList.add('hidden')
+  document.getElementById('content-scorecard').classList.add('hidden')
+  document.getElementById('content-settings').classList.add('hidden')
+  
+  // 모든 탭 버튼 비활성화
+  document.getElementById('tab-report').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
+  document.getElementById('tab-scorecard').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
+  document.getElementById('tab-settings').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
+  
+  // 선택한 탭 표시
+  if (tabName === 'report') {
+    document.getElementById('content-report').classList.remove('hidden')
+    document.getElementById('tab-report').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
+  } else if (tabName === 'scorecard') {
+    document.getElementById('content-scorecard').classList.remove('hidden')
+    document.getElementById('tab-scorecard').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
+    renderScorecard()
+  } else if (tabName === 'settings') {
+    document.getElementById('content-settings').classList.remove('hidden')
+    document.getElementById('tab-settings').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
+    loadSettings()
+    updateCurrentTimezoneDisplay()
+  }
+}
+
+// 설정 불러오기
+function loadSettings() {
+  const timezone = getTimezone()
+  const dateFormat = getDateFormat()
+  const timeFormat = getTimeFormat()
+  
+  document.getElementById('timezone-select').value = timezone
+  document.getElementById('date-format-select').value = dateFormat
+  document.getElementById('time-format-select').value = timeFormat
+}
+
+// 현재 시간대 시간 표시 업데이트
+function updateCurrentTimezoneDisplay() {
+  const tz = getTimezone()
+  const timeFormat = getTimeFormat()
+  
+  const now = new Date()
+  const options = {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: timeFormat === '12h'
+  }
+  
+  const formatted = now.toLocaleString(getDateFormat(), options)
+  document.getElementById('current-timezone-time').textContent = formatted
+  
+  // 1초마다 업데이트
+  setTimeout(updateCurrentTimezoneDisplay, 1000)
+}
+
+// 설정 저장
+function saveSettings() {
+  const timezone = document.getElementById('timezone-select').value
+  const dateFormat = document.getElementById('date-format-select').value
+  const timeFormat = document.getElementById('time-format-select').value
+  
+  localStorage.setItem('timezone', timezone)
+  localStorage.setItem('dateFormat', dateFormat)
+  localStorage.setItem('timeFormat', timeFormat)
+  
+  alert('✅ Settings saved successfully!')
+  
+  // 데이터 다시 불러오기 (시간대 변경 반영)
+  loadRecords()
+  loadStats()
+}
+
+// 설정 초기화
+function resetSettings() {
+  if (confirm('Are you sure you want to reset all settings to default?')) {
+    localStorage.removeItem('timezone')
+    localStorage.removeItem('dateFormat')
+    localStorage.removeItem('timeFormat')
+    
+    loadSettings()
+    updateCurrentTimezoneDisplay()
+    
+    alert('✅ Settings reset to default!')
+    
+    // 데이터 다시 불러오기
+    loadRecords()
+    loadStats()
+  }
+}
+
+// 시간대 선택 변경 시 실시간 시간 업데이트
+document.addEventListener('DOMContentLoaded', () => {
+  const timezoneSelect = document.getElementById('timezone-select')
+  if (timezoneSelect) {
+    timezoneSelect.addEventListener('change', () => {
+      // 임시로 변경사항 반영 (저장은 안 함)
+      updateCurrentTimezoneDisplay()
+    })
+  }
+})

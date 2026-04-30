@@ -504,6 +504,9 @@ app.get('/', (c) => {
                     <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
                         <i class="fas fa-trophy mr-2"></i>Scorecard
                     </button>
+                    <button onclick="showTab('settings')" id="tab-settings" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
+                        <i class="fas fa-cog mr-2"></i>Settings
+                    </button>
                 </div>
             </div>
         </div>
@@ -610,6 +613,87 @@ app.get('/', (c) => {
                         <i class="fas fa-info-circle text-gray-400 cursor-help ml-2" title="Cat Shower: Duration < 5min (quick wash without proper cleaning)"></i>
                     </h3>
                     <div id="cat-shower-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings 탭 -->
+        <div id="content-settings" class="max-w-7xl mx-auto px-4 py-6 hidden">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">
+                    <i class="fas fa-cog mr-2"></i>Settings
+                </h2>
+                
+                <!-- Timezone Setting -->
+                <div class="mb-6 pb-6 border-b">
+                    <label class="block text-lg font-medium text-gray-900 mb-2">
+                        <i class="fas fa-globe-americas mr-2"></i>Timezone
+                    </label>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Select your timezone for accurate date/time calculations and bacteria growth tracking.
+                    </p>
+                    <select id="timezone-select" class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <optgroup label="United States">
+                            <option value="America/New_York">Eastern Time (ET) - New York</option>
+                            <option value="America/Chicago">Central Time (CT) - Chicago</option>
+                            <option value="America/Denver">Mountain Time (MT) - Denver</option>
+                            <option value="America/Los_Angeles">Pacific Time (PT) - Los Angeles</option>
+                            <option value="America/Anchorage">Alaska Time (AKT) - Anchorage</option>
+                            <option value="America/Phoenix">Arizona Time (MST) - Phoenix</option>
+                        </optgroup>
+                        <optgroup label="Asia">
+                            <option value="Asia/Seoul">Korea Standard Time (KST) - Seoul</option>
+                            <option value="Asia/Tokyo">Japan Standard Time (JST) - Tokyo</option>
+                            <option value="Asia/Shanghai">China Standard Time (CST) - Shanghai</option>
+                        </optgroup>
+                        <optgroup label="Europe">
+                            <option value="Europe/London">Greenwich Mean Time (GMT) - London</option>
+                            <option value="Europe/Paris">Central European Time (CET) - Paris</option>
+                        </optgroup>
+                        <optgroup label="Other">
+                            <option value="UTC">UTC (Coordinated Universal Time)</option>
+                        </optgroup>
+                    </select>
+                    <div class="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-blue-800">
+                            <i class="fas fa-clock mr-1"></i>
+                            <strong>Current time in selected timezone:</strong> <span id="current-timezone-time" class="font-mono">Loading...</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Date Format Setting -->
+                <div class="mb-6 pb-6 border-b">
+                    <label class="block text-lg font-medium text-gray-900 mb-2">
+                        <i class="fas fa-calendar mr-2"></i>Date Format
+                    </label>
+                    <select id="date-format-select" class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="en-US">MM/DD/YYYY (US Format)</option>
+                        <option value="en-GB">DD/MM/YYYY (UK Format)</option>
+                        <option value="en-CA">YYYY-MM-DD (ISO Format)</option>
+                        <option value="ko-KR">YYYY년 MM월 DD일 (Korean)</option>
+                    </select>
+                </div>
+
+                <!-- Time Format Setting -->
+                <div class="mb-6">
+                    <label class="block text-lg font-medium text-gray-900 mb-2">
+                        <i class="fas fa-clock mr-2"></i>Time Format
+                    </label>
+                    <select id="time-format-select" class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="12h">12-hour (1:00 PM)</option>
+                        <option value="24h">24-hour (13:00)</option>
+                    </select>
+                </div>
+
+                <!-- Save Button -->
+                <div class="flex items-center space-x-3">
+                    <button onclick="saveSettings()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg transition-all">
+                        <i class="fas fa-save mr-2"></i>Save Settings
+                    </button>
+                    <button onclick="resetSettings()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg transition-all">
+                        <i class="fas fa-undo mr-2"></i>Reset to Default
+                    </button>
                 </div>
             </div>
         </div>
