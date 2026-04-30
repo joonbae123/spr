@@ -1116,7 +1116,9 @@ async function editRecord(id) {
   
   // 폼 제출 이벤트 변경 (수정 모드)
   const form = document.getElementById('add-form')
-  form.onsubmit = async (e) => {
+  
+  // 기존 이벤트 리스너 제거를 위해 새 핸들러 생성
+  const editHandler = async (e) => {
     e.preventDefault()
     
     const data = {
@@ -1143,10 +1145,13 @@ async function editRecord(id) {
       if (result.success) {
         hideAddForm()
         form.reset()
-        form.onsubmit = handleAddRecord // 원래 함수로 복원
+        
+        // 수정 핸들러 제거
+        form.removeEventListener('submit', editHandler)
         
         await loadRecords(currentFilters.startDate, currentFilters.endDate)
         await loadStats()
+        await loadBadges()
         
         if (currentTab === 'scorecard') {
           renderScorecard()
@@ -1161,6 +1166,9 @@ async function editRecord(id) {
       alert('Error occurred while updating record.')
     }
   }
+  
+  // 수정 모드 핸들러 등록 (addEventListener로 일관성 유지)
+  form.addEventListener('submit', editHandler)
   
   showAddForm()
 }
