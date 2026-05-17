@@ -77,9 +77,12 @@ app.post('/api/records', async (c) => {
       body_soap,
       hair_wash,
       dry_shampoo,
+      face_wash,
       cat_shower,
       teeth_brush,
-      feet_wash
+      feet_wash,
+      bath,
+      exfoliation
     } = data
 
     // pts수 계산
@@ -88,9 +91,12 @@ app.post('/api/records', async (c) => {
       body_soap,
       hair_wash,
       dry_shampoo,
+      face_wash,
       cat_shower,
       teeth_brush,
       feet_wash,
+      bath,
+      exfoliation,
       duration
     }, DB)
 
@@ -108,18 +114,22 @@ app.post('/api/records', async (c) => {
     const result = await DB.prepare(`
       INSERT INTO shower_records (
         date, start_time, duration,
-        body_soap, hair_wash, dry_shampoo, cat_shower, teeth_brush, feet_wash,
+        body_soap, hair_wash, dry_shampoo, face_wash, cat_shower, teeth_brush, feet_wash,
+        bath, exfoliation,
         completeness_score, frequency_score, duration_score, total_score, grade,
         is_cat_shower, days_since_last
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       date, start_time, duration,
       body_soap ? 1 : 0, 
       hair_wash ? 1 : 0,
       dry_shampoo ? 1 : 0,
+      face_wash ? 1 : 0,
       cat_shower ? 1 : 0,
       teeth_brush ? 1 : 0, 
       feet_wash ? 1 : 0,
+      bath ? 1 : 0,
+      exfoliation ? 1 : 0,
       completeness_score,
       frequency_score,
       duration_score,
@@ -128,6 +138,26 @@ app.post('/api/records', async (c) => {
       is_cat_shower ? 1 : 0,
       days_since_last
     ).run()
+
+    // 포인트 계산 및 적립
+    const points = calculatePoints(total_score)
+    
+    // user_points 테이블 초기화 또는 업데이트
+    await DB.prepare(`
+      INSERT INTO user_points (id, total_points, lifetime_points, last_updated)
+      VALUES (1, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        total_points = total_points + ?,
+        lifetime_points = lifetime_points + ?,
+        last_updated = CURRENT_TIMESTAMP
+    `).bind(points, points, points, points).run()
+    
+    // point_transactions 기록
+    await DB.prepare(`
+      INSERT INTO point_transactions (
+        transaction_type, amount, reason, created_at
+      ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    `).bind('earn', points, `Shower record: ${total_score} pts (${grade} grade)`).run()
 
     return c.json({
       success: true,
@@ -139,7 +169,8 @@ app.post('/api/records', async (c) => {
         total_score,
         grade,
         is_cat_shower
-      }
+      },
+      points_earned: points
     })
   } catch (error) {
     console.error('Error adding record:', error)
@@ -189,9 +220,12 @@ app.put('/api/records/:id', async (c) => {
       body_soap,
       hair_wash,
       dry_shampoo,
+      face_wash,
       cat_shower,
       teeth_brush,
-      feet_wash
+      feet_wash,
+      bath,
+      exfoliation
     } = data
 
     // pts수 재계산
@@ -200,9 +234,12 @@ app.put('/api/records/:id', async (c) => {
       body_soap,
       hair_wash,
       dry_shampoo,
+      face_wash,
       cat_shower,
       teeth_brush,
       feet_wash,
+      bath,
+      exfoliation,
       duration
     }, DB)
 
@@ -225,9 +262,12 @@ app.put('/api/records/:id', async (c) => {
         body_soap = ?,
         hair_wash = ?,
         dry_shampoo = ?,
+        face_wash = ?,
         cat_shower = ?,
         teeth_brush = ?,
         feet_wash = ?,
+        bath = ?,
+        exfoliation = ?,
         completeness_score = ?,
         frequency_score = ?,
         duration_score = ?,
@@ -242,9 +282,12 @@ app.put('/api/records/:id', async (c) => {
       body_soap ? 1 : 0,
       hair_wash ? 1 : 0,
       dry_shampoo ? 1 : 0,
+      face_wash ? 1 : 0,
       cat_shower ? 1 : 0,
       teeth_brush ? 1 : 0,
       feet_wash ? 1 : 0,
+      bath ? 1 : 0,
+      exfoliation ? 1 : 0,
       completeness_score,
       frequency_score,
       duration_score,
@@ -333,13 +376,25 @@ app.get('/api/stats', async (c) => {
       ORDER BY date DESC
     `).all()
 
+    // 전체 평균 점수 계산
+    const overallStats = await DB.prepare(`
+      SELECT 
+        COUNT(*) as total_count,
+        ROUND(AVG(total_score), 1) as avg_score,
+        ROUND((SUM(CASE WHEN is_cat_shower = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 1) as cat_shower_rate
+      FROM shower_records
+    `).first()
+
     return c.json({
       success: true,
       stats: {
         gradeDistribution: gradeDistribution.results,
         catShowerStats,
         actualShowerStats,
-        recentTrend: recentTrend.results
+        recentTrend: recentTrend.results,
+        avg_score: overallStats.avg_score || 0,
+        total_count: overallStats.total_count || 0,
+        cat_shower_rate: overallStats.cat_shower_rate || 0
       }
     })
   } catch (error) {
@@ -391,6 +446,516 @@ app.get('/api/badges', async (c) => {
     }, 500)
   }
 })
+
+// ============================================
+// API: Rewards & Points
+// ============================================
+app.get('/api/rewards', async (c) => {
+  const { DB } = c.env
+
+  try {
+    // Get user points
+    const userPoints = await DB.prepare(`
+      SELECT * FROM user_points WHERE id = 1
+    `).first()
+
+    // Get pending rewards
+    const pendingRewards = await DB.prepare(`
+      SELECT * FROM rewards WHERE status = 'pending' ORDER BY achieved_date DESC
+    `).all()
+
+    // Get claimed rewards (last 10)
+    const claimedRewards = await DB.prepare(`
+      SELECT * FROM rewards WHERE status != 'pending' ORDER BY claimed_date DESC LIMIT 10
+    `).all()
+
+    // Get recent point transactions (last 20)
+    const recentTransactions = await DB.prepare(`
+      SELECT * FROM point_transactions ORDER BY created_at DESC LIMIT 20
+    `).all()
+
+    return c.json({
+      success: true,
+      points: {
+        total: userPoints?.total_points || 0,
+        lifetime: userPoints?.lifetime_points || 0
+      },
+      rewards: {
+        pending: pendingRewards.results,
+        claimed: claimedRewards.results
+      },
+      transactions: recentTransactions.results
+    })
+  } catch (error) {
+    console.error('Error fetching rewards:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to fetch rewards'
+    }, 500)
+  }
+})
+
+// Claim reward
+app.post('/api/rewards/:id/claim', async (c) => {
+  const { DB } = c.env
+  const id = c.req.param('id')
+
+  try {
+    await DB.prepare(`
+      UPDATE rewards SET 
+        status = 'claimed',
+        claimed_date = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(id).run()
+
+    return c.json({
+      success: true,
+      message: 'Reward claimed! Check KakaoTalk for details.'
+    })
+  } catch (error) {
+    console.error('Error claiming reward:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to claim reward'
+    }, 500)
+  }
+})
+
+// Redeem points
+app.post('/api/rewards/redeem', async (c) => {
+  const { DB } = c.env
+
+  try {
+    const { item_name, points_cost } = await c.req.json()
+
+    // Check if user has enough points
+    const userPoints = await DB.prepare(`
+      SELECT total_points FROM user_points WHERE id = 1
+    `).first()
+
+    if (!userPoints || userPoints.total_points < points_cost) {
+      return c.json({
+        success: false,
+        error: 'Not enough points'
+      }, 400)
+    }
+
+    // Deduct points
+    await DB.prepare(`
+      UPDATE user_points SET 
+        total_points = total_points - ?
+      WHERE id = 1
+    `).bind(points_cost).run()
+
+    // Record transaction
+    await DB.prepare(`
+      INSERT INTO point_transactions (amount, reason, transaction_type)
+      VALUES (?, ?, 'spend')
+    `).bind(-points_cost, `Redeemed: ${item_name}`).run()
+
+    // Record redemption
+    await DB.prepare(`
+      INSERT INTO point_redemptions (item_name, points_cost)
+      VALUES (?, ?)
+    `).bind(item_name, points_cost).run()
+
+    return c.json({
+      success: true,
+      message: 'Item redeemed! Check KakaoTalk for confirmation.'
+    })
+  } catch (error) {
+    console.error('Error redeeming points:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to redeem points'
+    }, 500)
+  }
+})
+
+// Claim a goal reward
+app.post('/api/rewards/goals/:goal_id/claim', async (c) => {
+  const { DB } = c.env
+  const goalId = c.req.param('goal_id')
+
+  try {
+    // Get all records to recalculate goals
+    const allRecords = await DB.prepare(`
+      SELECT * FROM shower_records ORDER BY date DESC, start_time DESC
+    `).all()
+
+    const records = allRecords.results
+    const goals = await calculateGoals(records, DB)
+    
+    // Find the specific goal
+    const goal = goals.find((g: any) => g.id === goalId)
+    if (!goal) {
+      return c.json({
+        success: false,
+        error: 'Goal not found'
+      }, 404)
+    }
+
+    // Check if goal is completed
+    if (goal.status !== 'completed') {
+      return c.json({
+        success: false,
+        error: 'Goal not yet achieved'
+      }, 400)
+    }
+
+    // Check if can claim (cooldown check)
+    if (!goal.can_claim) {
+      return c.json({
+        success: false,
+        error: goal.type === 'streak' 
+          ? 'This streak reward has already been claimed'
+          : 'Please wait 7 days before claiming this weekly goal again'
+      }, 400)
+    }
+
+    // Record the claim in goal_claims table
+    const today = new Date().toISOString().split('T')[0]
+    await DB.prepare(`
+      INSERT INTO goal_claims (
+        goal_id, 
+        claimed_date, 
+        period_start, 
+        period_end, 
+        average_score, 
+        streak_count
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(
+      goalId,
+      today,
+      goal.period_start || null,
+      goal.period_end || null,
+      goal.current || null,
+      goal.type === 'streak' ? goal.current : null
+    ).run()
+
+    // Add to rewards table as pending
+    await DB.prepare(`
+      INSERT INTO rewards (
+        reward_type,
+        title,
+        description,
+        value,
+        achieved_date
+      )
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      'direct',
+      goal.title,
+      goal.description,
+      goal.reward,
+      today
+    ).run()
+
+    return c.json({
+      success: true,
+      message: 'Goal reward claimed! Check Pending Rewards.'
+    })
+  } catch (error) {
+    console.error('Error claiming goal:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to claim goal reward'
+    }, 500)
+  }
+})
+
+// 백필: 기존 기록들에 대한 포인트 일괄 적립
+app.post('/api/rewards/backfill', async (c) => {
+  const { DB } = c.env
+  
+  try {
+    // 모든 샤워 기록 가져오기
+    const records = await DB.prepare(`
+      SELECT id, total_score, grade, date FROM shower_records ORDER BY date ASC
+    `).all()
+    
+    if (!records.results || records.results.length === 0) {
+      return c.json({
+        success: false,
+        error: 'No records found to backfill'
+      }, 404)
+    }
+    
+    let totalPointsAdded = 0
+    const transactions = []
+    
+    // 각 기록에 대해 포인트 계산
+    for (const record of records.results) {
+      const points = calculatePoints(record.total_score)
+      totalPointsAdded += points
+      
+      transactions.push({
+        record_id: record.id,
+        date: record.date,
+        score: record.total_score,
+        grade: record.grade,
+        points: points
+      })
+      
+      // point_transactions에 기록 추가
+      await DB.prepare(`
+        INSERT INTO point_transactions (
+          transaction_type, amount, reason, created_at
+        ) VALUES (?, ?, ?, ?)
+      `).bind(
+        'earn', 
+        points, 
+        `Backfill: ${record.total_score} pts (${record.grade} grade) - ${record.date}`,
+        record.date + ' 23:59:59'  // 해당 날짜의 끝으로 설정
+      ).run()
+    }
+    
+    // user_points 테이블 업데이트
+    await DB.prepare(`
+      INSERT INTO user_points (id, total_points, lifetime_points, last_updated)
+      VALUES (1, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        total_points = total_points + ?,
+        lifetime_points = lifetime_points + ?,
+        last_updated = CURRENT_TIMESTAMP
+    `).bind(totalPointsAdded, totalPointsAdded, totalPointsAdded, totalPointsAdded).run()
+    
+    return c.json({
+      success: true,
+      message: `Successfully backfilled ${records.results.length} records`,
+      total_points_added: totalPointsAdded,
+      transactions: transactions
+    })
+  } catch (error) {
+    console.error('Error backfilling points:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to backfill points: ' + error.message
+    }, 500)
+  }
+})
+
+// Get active goals progress
+app.get('/api/rewards/goals', async (c) => {
+  const { DB } = c.env
+
+  try {
+    // Get all records
+    const allRecords = await DB.prepare(`
+      SELECT * FROM shower_records ORDER BY date DESC, start_time DESC
+    `).all()
+
+    const records = allRecords.results
+
+    // Calculate goals
+    const goals = await calculateGoals(records, DB)
+
+    return c.json({
+      success: true,
+      goals
+    })
+  } catch (error) {
+    console.error('Error calculating goals:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to calculate goals'
+    }, 500)
+  }
+})
+
+// ============================================
+// Goals Calculation
+// ============================================
+async function calculateGoals(records: any[], DB: D1Database) {
+  const goals: any[] = []
+
+  // Check streak
+  const streak = calculateStreak(records)
+
+  // Get last claims for each goal
+  const lastClaims = await DB.prepare(`
+    SELECT goal_id, MAX(claimed_date) as last_claimed
+    FROM goal_claims
+    GROUP BY goal_id
+  `).all()
+
+  const claimMap = new Map(
+    lastClaims.results.map((c: any) => [c.goal_id, c.last_claimed])
+  )
+
+  // Check if goal can be claimed (cooldown check)
+  async function canClaim(goalId: string, goalType: string): Promise<boolean> {
+    const lastClaimed = claimMap.get(goalId)
+    if (!lastClaimed) return true
+
+    if (goalType === 'weekly') {
+      // Weekly goals: 7 days cooldown
+      const daysSinceLastClaim = Math.floor(
+        (new Date().getTime() - new Date(lastClaimed).getTime()) / (1000 * 60 * 60 * 24)
+      )
+      return daysSinceLastClaim >= 7
+    } else if (goalType === 'streak') {
+      // Streak goals: can only claim once
+      return false
+    }
+    return true
+  }
+
+  // Weekly goals (last 7 days)
+  const last7Days = records.slice(0, 7)
+  if (last7Days.length >= 7) {
+    const weeklyAvg = last7Days.reduce((sum: number, r: any) => sum + r.total_score, 0) / 7
+    const periodStart = last7Days[6].date
+    const periodEnd = last7Days[0].date
+
+    const strongWeekCanClaim = await canClaim('strong_week', 'weekly')
+    goals.push({
+      id: 'strong_week',
+      title: 'Strong Week',
+      description: '7 days avg 80+',
+      progress: Math.round(weeklyAvg),
+      target: 80,
+      current: Math.round(weeklyAvg),
+      status: weeklyAvg >= 80 ? 'completed' : 'in_progress',
+      reward: 'Choose any meal (~$30)',
+      reward_type: 'direct',
+      type: 'weekly',
+      can_claim: weeklyAvg >= 80 && strongWeekCanClaim,
+      last_claimed: claimMap.get('strong_week') || null,
+      period_start: periodStart,
+      period_end: periodEnd
+    })
+
+    const greatWeekCanClaim = await canClaim('great_week', 'weekly')
+    goals.push({
+      id: 'great_week',
+      title: 'Great Week',
+      description: '7 days avg 85+',
+      progress: Math.round(weeklyAvg),
+      target: 85,
+      current: Math.round(weeklyAvg),
+      status: weeklyAvg >= 85 ? 'completed' : 'in_progress',
+      reward: 'Meal + dessert (~$40)',
+      reward_type: 'direct',
+      type: 'weekly',
+      can_claim: weeklyAvg >= 85 && greatWeekCanClaim,
+      last_claimed: claimMap.get('great_week') || null,
+      period_start: periodStart,
+      period_end: periodEnd
+    })
+  }
+
+  // Streak goals (70+ score quality showers)
+  const streak14CanClaim = await canClaim('14_day_streak', 'streak')
+  goals.push({
+    id: '14_day_streak',
+    title: '14-day Quality Streak',
+    description: '70+ score for 14 days straight',
+    progress: streak,
+    target: 14,
+    current: streak,
+    status: streak >= 14 ? 'completed' : 'in_progress',
+    reward: 'Nice meal (~$40)',
+    reward_type: 'direct',
+    type: 'streak',
+    can_claim: streak >= 14 && streak14CanClaim,
+    last_claimed: claimMap.get('14_day_streak') || null
+  })
+
+  const streak30CanClaim = await canClaim('30_day_streak', 'streak')
+  goals.push({
+    id: '30_day_streak',
+    title: '30-day Quality Streak',
+    description: '70+ score for 30 days straight',
+    progress: streak,
+    target: 30,
+    current: streak,
+    status: streak >= 30 ? 'completed' : 'in_progress',
+    reward: 'Korea care package (~$80)',
+    reward_type: 'direct',
+    type: 'streak',
+    can_claim: streak >= 30 && streak30CanClaim,
+    last_claimed: claimMap.get('30_day_streak') || null
+  })
+
+  const streak60CanClaim = await canClaim('60_day_streak', 'streak')
+  goals.push({
+    id: '60_day_streak',
+    title: '60-day Quality Streak',
+    description: '70+ score for 60 days straight',
+    progress: streak,
+    target: 60,
+    current: streak,
+    status: streak >= 60 ? 'completed' : 'in_progress',
+    reward: 'Korea mega box (~$150)',
+    reward_type: 'direct',
+    type: 'streak',
+    can_claim: streak >= 60 && streak60CanClaim,
+    last_claimed: claimMap.get('60_day_streak') || null
+  })
+
+  const streak100CanClaim = await canClaim('100_day_streak', 'streak')
+  goals.push({
+    id: '100_day_streak',
+    title: '100-day Quality Streak',
+    description: '70+ score for 100 days straight',
+    progress: streak,
+    target: 100,
+    current: streak,
+    status: streak >= 100 ? 'completed' : 'in_progress',
+    reward: '✈️ USA Trip!',
+    reward_type: 'direct',
+    type: 'legendary',
+    can_claim: streak >= 100 && streak100CanClaim,
+    last_claimed: claimMap.get('100_day_streak') || null
+  })
+
+  return goals
+}
+
+function calculateStreak(records: any[]): number {
+  if (records.length === 0) return 0
+
+  // Filter only quality showers (70+ score with Body Soap OR Hair Wash)
+  // Must be real shower with good score, not cat showers or partial hygiene
+  const qualityShowers = records.filter((r: any) => 
+    (r.body_soap === 1 || r.hair_wash === 1) && r.total_score >= 70
+  )
+  
+  if (qualityShowers.length === 0) return 0
+
+  let streak = 1
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Check if recorded today or yesterday
+  const lastRecord = new Date(qualityShowers[0].date)
+  lastRecord.setHours(0, 0, 0, 0)
+  const daysSinceLastRecord = Math.floor((today.getTime() - lastRecord.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (daysSinceLastRecord > 1) {
+    return 0 // Streak broken
+  }
+
+  // Count consecutive days
+  for (let i = 0; i < qualityShowers.length - 1; i++) {
+    const currentDate = new Date(qualityShowers[i].date)
+    const nextDate = new Date(qualityShowers[i + 1].date)
+    currentDate.setHours(0, 0, 0, 0)
+    nextDate.setHours(0, 0, 0, 0)
+
+    const daysDiff = Math.floor((currentDate.getTime() - nextDate.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (daysDiff === 1) {
+      streak++
+    } else {
+      break
+    }
+  }
+
+  return streak
+}
 
 // ============================================
 // 뱃지 체크 함수
@@ -627,33 +1192,77 @@ async function getBadgeProgress(badgeId: string, records: any[], stats: any, DB:
 // ============================================
 // pts수 계산 함수
 // ============================================
+// 포인트 계산 함수
+function calculatePoints(totalScore: number): number {
+  if (totalScore >= 95) return 10
+  if (totalScore >= 85) return 7
+  if (totalScore >= 70) return 5
+  if (totalScore >= 60) return 3
+  return 1
+}
+
 async function calculateScores(data: any, DB: D1Database) {
-  const { body_soap, hair_wash, dry_shampoo, cat_shower, teeth_brush, feet_wash, duration } = data
+  const { body_soap, hair_wash, dry_shampoo, face_wash, cat_shower, teeth_brush, feet_wash, bath, exfoliation, duration } = data
 
-  // 1. Completeness pts수 (Checklist)
-  // Dry Shampoo는 0.5점, Face Wash는 0.3점만 인정
+  // 1. Completeness 점수 (Checklist)
+  // 새로운 배점: Body Soap (25%), Hair Wash (25%), Face Wash (20%), Teeth Brush (15%), Feet Wash (15%)
+  // ✨ Body Soap 체크 시 Feet Wash 자동 포함 (몸 씻으면 발도 씻게 됨)
+  // 🛁 Bath 체크 시 Body Soap + Feet Wash 자동 포함 + 10점 보너스
+  // 🧽 Exfoliation은 Bath와 함께만 가능, +5점 보너스
   let completenessPoints = 0
-  if (body_soap) completenessPoints += 1
-  if (hair_wash) completenessPoints += 1
-  else if (dry_shampoo) completenessPoints += 0.5  // 머리 안 감았지만 드라이샴푸는 함
-  if (cat_shower) completenessPoints += 0.3  // 얼굴만 물로 헹굼
-  if (teeth_brush) completenessPoints += 1
-  if (feet_wash) completenessPoints += 1
   
-  const completeness_score = (completenessPoints / 5) * 100
+  if (bath) {
+    // 목욕 = Body Soap + Feet Wash 자동 포함 + 보너스
+    completenessPoints += 25  // Body Soap 자동
+    completenessPoints += 15  // Feet Wash 자동
+    completenessPoints += 10  // Bath 보너스
+    
+    if (exfoliation) {
+      completenessPoints += 5  // Exfoliation 보너스 (목욕과 함께만)
+    }
+  } else if (body_soap) {
+    completenessPoints += 25  // Body Soap
+    completenessPoints += 15  // Feet Wash 자동 포함
+  } else if (feet_wash) {
+    completenessPoints += 15  // 발만 씻은 경우
+  }
+  
+  if (hair_wash) completenessPoints += 25
+  else if (dry_shampoo) completenessPoints += 12.5  // 머리 안 감았지만 드라이샴푸는 절반 인정
+  if (face_wash) completenessPoints += 20  // 제대로 세수 (세안제 사용)
+  // cat_shower는 점수에 포함 안 됨 (나쁜 습관 마커)
+  if (teeth_brush) completenessPoints += 15
+  
+  const completeness_score = completenessPoints
 
-  // 2. Time pts수 (10-20min이 이상적)
+  // 2. Time pts수 (10-20min이 이상적, 목욕은 20-40min 권장)
   let duration_score = 100
-  if (duration < 5) {
-    duration_score = 40  // 너무 짧음 (Cat Shower 의심)
-  } else if (duration < 10) {
-    duration_score = 70  // 좀 짧음
-  } else if (duration <= 20) {
-    duration_score = 100 // 적정
-  } else if (duration <= 30) {
-    duration_score = 90  // 좀 김
+  if (bath) {
+    // 목욕은 더 긴 시간 권장
+    if (duration < 15) {
+      duration_score = 60  // 목욕치고 너무 짧음
+    } else if (duration < 20) {
+      duration_score = 80  // 좀 짧음
+    } else if (duration <= 40) {
+      duration_score = 100 // 적정 (목욕 시간)
+    } else if (duration <= 50) {
+      duration_score = 90  // 좀 김
+    } else {
+      duration_score = 70  // 너무 김
+    }
   } else {
-    duration_score = 70  // 너무 김 (물 낭비)
+    // 일반 샤워
+    if (duration < 5) {
+      duration_score = 40  // 너무 짧음 (Cat Shower 의심)
+    } else if (duration < 10) {
+      duration_score = 70  // 좀 짧음
+    } else if (duration <= 20) {
+      duration_score = 100 // 적정
+    } else if (duration <= 30) {
+      duration_score = 90  // 좀 김
+    } else {
+      duration_score = 70  // 너무 김 (물 낭비)
+    }
   }
 
   // 3. Frequency pts수 (마지막 실제 샤워 이후 경과일)
@@ -662,10 +1271,10 @@ async function calculateScores(data: any, DB: D1Database) {
 
   try {
     // 마지막 실제 샤워 기록만 찾기 (양치질/발만 씻기 제외)
-    // body_soap=1 OR hair_wash=1인 기록만
+    // body_soap=1 OR hair_wash=1 OR bath=1인 기록만
     const lastShower = await DB.prepare(`
       SELECT date, start_time FROM shower_records 
-      WHERE body_soap = 1 OR hair_wash = 1
+      WHERE body_soap = 1 OR hair_wash = 1 OR bath = 1
       ORDER BY date DESC, start_time DESC 
       LIMIT 1
     `).first()
@@ -697,8 +1306,8 @@ async function calculateScores(data: any, DB: D1Database) {
   }
 
   // 4. 실제 샤워 여부 판단
-  const isActualShower = body_soap || hair_wash  // 몸/머리 중 하나라도 씻어야 샤워로 인정
-  const isDryShampooOnly = dry_shampoo && !hair_wash && !body_soap  // 드라이샴푸만 사용
+  const isActualShower = body_soap || hair_wash || bath  // 몸/머리/목욕 중 하나라도 해야 샤워로 인정
+  const isDryShampooOnly = dry_shampoo && !hair_wash && !body_soap && !bath  // 드라이샴푸만 사용
   
   // 5. Score (가중 Avg) - 실제 샤워인 경우에만 계산
   const total_score = Math.round(
@@ -756,9 +1365,9 @@ app.get('/', (c) => {
             body { font-family: 'Montserrat', sans-serif; }
         </style>
     </head>
-    <body class="bg-gray-50 min-h-screen flex flex-col">
-        <!-- Header -->
-        <div class="bg-white shadow-sm">
+    <body class="bg-gray-50 min-h-screen flex flex-col pt-32">
+        <!-- Header (Fixed) -->
+        <div class="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
             <div class="max-w-7xl mx-auto px-6 py-6">
                 <div class="flex items-start justify-between">
                     <div>
@@ -775,27 +1384,30 @@ app.get('/', (c) => {
                     </button>
                 </div>
             </div>
+
+            <!-- Tabs (부분적으로 헤더 안에 포함) -->
+            <div class="bg-white border-t">
+                <div class="max-w-7xl mx-auto px-6">
+                    <div class="flex border-b">
+                        <button onclick="showTab('report')" id="tab-report" class="px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500">
+                            <i class="fas fa-chart-line mr-2"></i>Report
+                        </button>
+                        <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
+                            <i class="fas fa-trophy mr-2"></i>Scorecard
+                        </button>
+                        <button onclick="showTab('rewards')" id="tab-rewards" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
+                            <i class="fas fa-gift mr-2"></i>Rewards
+                        </button>
+                        <button onclick="showTab('settings')" id="tab-settings" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
+                            <i class="fas fa-cog mr-2"></i>Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Main Content -->
         <div class="flex-grow">
-
-        <!-- Tabs -->
-        <div class="bg-white shadow-sm mb-6">
-            <div class="max-w-7xl mx-auto px-6">
-                <div class="flex border-b">
-                    <button onclick="showTab('report')" id="tab-report" class="px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500">
-                        <i class="fas fa-chart-line mr-2"></i>Report
-                    </button>
-                    <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
-                        <i class="fas fa-trophy mr-2"></i>Scorecard
-                    </button>
-                    <button onclick="showTab('settings')" id="tab-settings" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
-                        <i class="fas fa-cog mr-2"></i>Settings
-                    </button>
-                </div>
-            </div>
-        </div>
 
         <!-- Report 탭 -->
         <div id="content-report" class="max-w-7xl mx-auto px-4 py-6">
@@ -992,6 +1604,251 @@ app.get('/', (c) => {
                         <i class="fas fa-undo mr-2"></i>Reset to Default
                     </button>
                 </div>
+
+                <!-- Glossary Section -->
+                <div class="mt-8 pt-8 border-t">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-book mr-2"></i>📚 Scoring System Glossary
+                    </h2>
+                    
+                    <!-- Total Score Formula -->
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6 border-l-4 border-blue-500">
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">🎯 Total Score Formula</h3>
+                        <div class="bg-white rounded-lg p-4 font-mono text-sm mb-3">
+                            Total Score = (Completeness × 40%) + (Frequency × 30%) + (Duration × 30%)
+                        </div>
+                        <p class="text-gray-700">
+                            Your final score is calculated by combining three key factors with weighted importance.
+                        </p>
+                    </div>
+
+                    <!-- 1. Completeness Score -->
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3">
+                            <span class="text-blue-600">1️⃣ Completeness Score (40%)</span>
+                        </h3>
+                        <p class="text-gray-700 mb-3">
+                            Measures how thoroughly you completed the hygiene checklist. Each item contributes to a maximum of 100 points.
+                        </p>
+                        <div class="space-y-2 ml-4">
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-40">🧼 Body Soap:</span>
+                                <span class="text-gray-700">25 points (essential) + <strong class="text-green-600">Auto includes Feet Wash (+15pts)</strong></span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-40">🧴 Hair Wash:</span>
+                                <span class="text-gray-700">25 points (essential)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-40">🧴✨ Dry Shampoo:</span>
+                                <span class="text-gray-700">12.5 points (half credit when not washing hair)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-40">🧼😊 Face Wash:</span>
+                                <span class="text-gray-700">20 points (with cleanser, highly recommended)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-40">🐱💧 Cat Shower:</span>
+                                <span class="text-red-600">0 points (water only, not recommended - bad habit marker)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-40">🪥 Teeth Brush:</span>
+                                <span class="text-gray-700">15 points (important for hygiene)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-40">🦶 Feet Wash:</span>
+                                <span class="text-gray-700">15 points (automatically included with Body Soap)</span>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                            <p class="text-sm text-blue-900">
+                                <strong>💡 Tip:</strong> A perfect completeness score is 100 points (Body + Hair + Face + Teeth). <strong>Feet Wash is automatically included when you use Body Soap!</strong>
+                            </p>
+                        </div>
+                        <div class="mt-2 p-3 bg-green-50 rounded border-l-4 border-green-400">
+                            <p class="text-sm text-green-900">
+                                <strong>✨ Auto-Include Logic:</strong> When you check "Body Soap", the system automatically awards Feet Wash points since washing your body naturally includes washing your feet. You don't need to check Feet Wash separately!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 2. Frequency Score -->
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3">
+                            <span class="text-green-600">2️⃣ Frequency Score (30%)</span>
+                        </h3>
+                        <p class="text-gray-700 mb-3">
+                            Measures how regularly you shower. Based on days since your last <strong>actual shower</strong> (body soap OR hair wash).
+                        </p>
+                        <div class="space-y-2 ml-4">
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">1 day ago:</span>
+                                <span class="text-green-600">100 points ✅ (excellent hygiene)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">2 days ago:</span>
+                                <span class="text-yellow-600">80 points (acceptable)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">3 days ago:</span>
+                                <span class="text-orange-600">60 points (needs improvement)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">4 days ago:</span>
+                                <span class="text-red-600">40 points ⚠️ (poor hygiene)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">5+ days ago:</span>
+                                <span class="text-red-600">20 points 💀 (bacteria party!)</span>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 bg-green-50 rounded border-l-4 border-green-400">
+                            <p class="text-sm text-green-900">
+                                <strong>💡 Tip:</strong> Showering every 1-2 days maintains optimal hygiene and maximizes your frequency score.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 3. Duration Score -->
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3">
+                            <span class="text-purple-600">3️⃣ Duration Score (30%)</span>
+                        </h3>
+                        <p class="text-gray-700 mb-3">
+                            Measures shower duration quality. Too short suggests rushed cleaning; too long wastes water.
+                        </p>
+                        <div class="space-y-2 ml-4">
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">&lt; 5 minutes:</span>
+                                <span class="text-red-600">40 points 🐱 (cat shower risk - too rushed)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">5-9 minutes:</span>
+                                <span class="text-yellow-600">70 points (a bit short)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">10-20 minutes:</span>
+                                <span class="text-green-600">100 points ✅ (optimal duration)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">21-30 minutes:</span>
+                                <span class="text-yellow-600">90 points (a bit long)</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-semibold text-gray-900 w-32">&gt; 30 minutes:</span>
+                                <span class="text-orange-600">70 points 💧 (water waste concern)</span>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 bg-purple-50 rounded border-l-4 border-purple-400">
+                            <p class="text-sm text-purple-900">
+                                <strong>💡 Tip:</strong> Aim for 10-20 minutes: thorough cleaning without wasting water.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Grade System -->
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3">
+                            <span class="text-indigo-600">🏆 Grade System</span>
+                        </h3>
+                        <p class="text-gray-700 mb-3">
+                            Your total score is converted to a letter grade for easy understanding.
+                        </p>
+                        <div class="space-y-2 ml-4">
+                            <div class="flex items-start">
+                                <span class="px-3 py-1 rounded font-bold bg-purple-100 text-purple-800 w-16 text-center mr-3">S</span>
+                                <span class="text-gray-700">90-100 points: Hygiene Master! 😇✨</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="px-3 py-1 rounded font-bold bg-blue-100 text-blue-800 w-16 text-center mr-3">A</span>
+                                <span class="text-gray-700">80-89 points: Excellent hygiene! 😊</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="px-3 py-1 rounded font-bold bg-green-100 text-green-800 w-16 text-center mr-3">B</span>
+                                <span class="text-gray-700">70-79 points: Good job! 😐</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="px-3 py-1 rounded font-bold bg-yellow-100 text-yellow-800 w-16 text-center mr-3">C</span>
+                                <span class="text-gray-700">60-69 points: Needs improvement 😷</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="px-3 py-1 rounded font-bold bg-red-100 text-red-800 w-16 text-center mr-3">D</span>
+                                <span class="text-gray-700">&lt; 60 points: Bacteria civilization! 🤢</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Special Markers -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3">
+                            <span class="text-orange-600">⚠️ Special Markers</span>
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="p-3 bg-red-50 rounded border-l-4 border-red-400">
+                                <p class="font-semibold text-red-900 mb-1">🐱💧 Cat Shower Detection</p>
+                                <p class="text-sm text-red-800">
+                                    Triggered when you check "Cat Shower" OR shower duration is less than 5 minutes without proper cleaning. This is a bad habit marker and contributes 0 points.
+                                </p>
+                            </div>
+                            <div class="p-3 bg-green-50 rounded border-l-4 border-green-400">
+                                <p class="font-semibold text-green-900 mb-1">🦠 Bacteria Reduction Rate</p>
+                                <p class="text-sm text-green-800">
+                                    • Face Wash + Teeth Brush: ~40% bacteria reduction<br>
+                                    • Cat Shower + Teeth Brush: ~25% bacteria reduction<br>
+                                    • Full shower (Body + Hair + Face + Teeth): ~60% bacteria reduction
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rewards 탭 -->
+        <div id="content-rewards" class="max-w-7xl mx-auto px-4 py-6 hidden">
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-6">
+                <div class="text-center">
+                    <div class="text-6xl mb-3">🎁</div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Rewards & Points</h2>
+                    <p class="text-gray-600">Earn rewards for your hygiene achievements!</p>
+                </div>
+            </div>
+
+            <!-- Points Summary -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-2xl font-bold text-gray-900">
+                        <i class="fas fa-coins text-yellow-500 mr-2"></i>Your Points
+                    </h3>
+                    <div class="text-right">
+                        <div class="text-4xl font-bold text-purple-600" id="total-points">0</div>
+                        <div class="text-sm text-gray-500">Lifetime: <span id="lifetime-points">0</span> pts</div>
+                    </div>
+                </div>
+                <button onclick="showPointShop()" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 rounded-lg font-semibold">
+                    <i class="fas fa-shopping-cart mr-2"></i>Open Point Shop
+                </button>
+            </div>
+
+            <!-- Active Goals -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-bullseye text-blue-600 mr-2"></i>Active Goals
+                </h3>
+                <div id="active-goals-container">
+                    <p class="text-gray-500">Loading goals...</p>
+                </div>
+            </div>
+
+            <!-- Pending Rewards -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-gift text-green-600 mr-2"></i>Pending Rewards
+                    <span id="pending-count" class="ml-2 px-3 py-1 bg-red-500 text-white text-sm rounded-full">0</span>
+                </h3>
+                <div id="pending-rewards-container">
+                    <p class="text-gray-500">No pending rewards yet. Keep showering!</p>
+                </div>
             </div>
         </div>
 
@@ -1024,11 +1881,15 @@ app.get('/', (c) => {
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-dry-shampoo" class="rounded">
-                            <span>Dry Shampoo 🧴✨ <span class="text-xs text-gray-500">(0.5x effectiveness)</span></span>
+                            <span>Dry Shampoo 🧴✨ <span class="text-xs text-gray-500">(when not washing hair)</span></span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="input-face-wash" class="rounded">
+                            <span>Face Wash 🧼😊 <span class="text-xs text-green-600">(with cleanser +20%)</span></span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-cat-shower" class="rounded">
-                            <span>Face Wash 🐱💧 <span class="text-xs text-gray-500">(0.3x effectiveness)</span></span>
+                            <span>Cat Face Wash 🐱💧 <span class="text-xs text-orange-600">(water only - not recommended)</span></span>
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-teeth-brush" class="rounded">
@@ -1036,7 +1897,15 @@ app.get('/', (c) => {
                         </label>
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="input-feet-wash" class="rounded">
-                            <span>Feet Wash 🦶</span>
+                            <span>Feet Wash 🦶 <span class="text-xs text-gray-500">(auto-included with Body Soap)</span></span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="input-bath" class="rounded">
+                            <span>Bath 🛁 <span class="text-xs text-purple-600">(includes Body Soap & Feet +10pts)</span></span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="input-exfoliation" class="rounded">
+                            <span>Exfoliation 🧽 <span class="text-xs text-purple-600">(only with Bath +5pts)</span></span>
                         </label>
                     </div>
                     <div class="flex space-x-3 pt-4">
@@ -1086,10 +1955,87 @@ app.get('/', (c) => {
                 
                 <div class="border-t mt-6 pt-6 text-center text-sm text-gray-500">
                     <p>© 2026 WAIV SPR Project. Made with 💙 for HW's hygiene improvement.</p>
-                    <p class="mt-1">IPR Parody Edition | v1.1.0</p>
+                    <p class="mt-1">IPR Parody Edition | v1.2.0</p>
+                    <p class="mt-2 text-xs">
+                        <a href="#" onclick="showChangelog(); return false;" class="text-blue-600 hover:text-blue-800 underline">
+                            📝 Changelog
+                        </a>
+                    </p>
                 </div>
             </div>
         </footer>
+
+        <!-- Changelog Modal -->
+        <div id="changelog-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-2xl font-bold text-gray-900">📝 Version History</h3>
+                    <button onclick="hideChangelog()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-6">
+                    <!-- v1.2.0 -->
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold text-sm">v1.2.0</span>
+                            <span class="text-gray-500 text-sm">2026-05-11</span>
+                        </div>
+                        <h4 class="font-bold text-gray-900 mb-2">🧼 Face Wash Update & Auto-Include Logic</h4>
+                        <ul class="space-y-1 text-sm text-gray-700">
+                            <li>✨ <strong>Added Face Wash (🧼😊)</strong>: New checklist item for proper face washing with cleanser (+20 points)</li>
+                            <li>🐱 <strong>Separated Cat Shower</strong>: Cat Shower now only for water-only face rinsing (0 points, bad habit marker)</li>
+                            <li>🦶 <strong>Auto-Include Logic</strong>: Body Soap now automatically includes Feet Wash points (no need to check separately!)</li>
+                            <li>📊 <strong>Updated Scoring</strong>: Body 25% + Hair 25% + Face 20% + Teeth 15% + Feet 15% (auto with Body)</li>
+                            <li>📚 <strong>Added Glossary</strong>: Comprehensive scoring system guide in Settings tab</li>
+                            <li>🎯 <strong>Fixed Avg Score</strong>: Scorecard now displays average score correctly</li>
+                            <li>📌 <strong>Fixed Header</strong>: Header and tabs now stay at top when scrolling</li>
+                        </ul>
+                    </div>
+
+                    <!-- v1.1.0 -->
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-semibold text-sm">v1.1.0</span>
+                            <span class="text-gray-500 text-sm">2026-04-30</span>
+                        </div>
+                        <h4 class="font-bold text-gray-900 mb-2">🚀 Initial Production Release</h4>
+                        <ul class="space-y-1 text-sm text-gray-700">
+                            <li>🎯 <strong>Core Features</strong>: Shower tracking with completeness, frequency, and duration scoring</li>
+                            <li>📈 <strong>Statistics</strong>: Grade distribution, cat shower stats, trend charts</li>
+                            <li>🏆 <strong>Badge System</strong>: Good, bad, funny, and hidden achievement badges</li>
+                            <li>🕐 <strong>Timezone Support</strong>: US, Asia, Europe timezones with custom date/time formats</li>
+                            <li>🔍 <strong>Date Filters</strong>: Filter records by date range with quick filters</li>
+                            <li>🦠 <strong>Bacteria Tracking</strong>: Real-time bacteria level based on last shower</li>
+                            <li>☁️ <strong>Cloudflare D1</strong>: Production database with migration support</li>
+                        </ul>
+                    </div>
+
+                    <!-- v1.0.0 -->
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full font-semibold text-sm">v1.0.0</span>
+                            <span class="text-gray-500 text-sm">2026-04-26</span>
+                        </div>
+                        <h4 class="font-bold text-gray-900 mb-2">🎉 Project Launch</h4>
+                        <ul class="space-y-1 text-sm text-gray-700">
+                            <li>🚿 <strong>Basic Tracking</strong>: Record shower date, time, duration, and checklist items</li>
+                            <li>📊 <strong>Simple Scoring</strong>: Basic completeness and frequency scoring</li>
+                            <li>💾 <strong>Local Storage</strong>: Data persistence in local development</li>
+                            <li>🎨 <strong>UI Design</strong>: Clean, responsive interface with Tailwind CSS</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t text-center">
+                    <button onclick="hideChangelog()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
         </div>
 
         <script src="/static/app.js"></script>

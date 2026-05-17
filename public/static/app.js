@@ -895,31 +895,82 @@ function renderTrendChart() {
   const labels = trendData.map(d => d.date).reverse()
   const scores = trendData.map(d => d.total_score).reverse()
   
+  // 추세선 계산 (Linear Regression)
+  function calculateTrendline(data) {
+    const n = data.length
+    if (n < 2) return data
+    
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0
+    
+    for (let i = 0; i < n; i++) {
+      sumX += i
+      sumY += data[i]
+      sumXY += i * data[i]
+      sumX2 += i * i
+    }
+    
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+    const intercept = (sumY - slope * sumX) / n
+    
+    return data.map((_, i) => slope * i + intercept)
+  }
+  
+  const trendline = calculateTrendline(scores)
+  
   window.trendChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
-      datasets: [{
-        label: 'Score',
-        data: scores,
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4,
-        fill: true
-      }]
+      datasets: [
+        {
+          label: 'Score',
+          data: scores,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'Trend',
+          data: trendline,
+          borderColor: '#ef4444',
+          borderDash: [5, 5],
+          borderWidth: 2,
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 0
+        }
+      ]
     },
     options: {
       responsive: true,
       plugins: {
         legend: {
-          display: false
+          display: true,
+          position: 'top'
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false
         }
       },
       scales: {
         y: {
           beginAtZero: true,
-          max: 100
+          max: 120,  // Bath bonus 고려
+          ticks: {
+            callback: function(value) {
+              return value + 'pts'
+            }
+          }
         }
+      },
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
       }
     }
   })
@@ -995,9 +1046,12 @@ async function handleAddRecord(e) {
     body_soap: document.getElementById('input-body-soap').checked,
     hair_wash: document.getElementById('input-hair-wash').checked,
     dry_shampoo: document.getElementById('input-dry-shampoo').checked,
+    face_wash: document.getElementById('input-face-wash').checked,
     cat_shower: document.getElementById('input-cat-shower').checked,
     teeth_brush: document.getElementById('input-teeth-brush').checked,
-    feet_wash: document.getElementById('input-feet-wash').checked
+    feet_wash: document.getElementById('input-feet-wash').checked,
+    bath: document.getElementById('input-bath').checked,
+    exfoliation: document.getElementById('input-exfoliation').checked
   }
   
   try {
@@ -1110,9 +1164,12 @@ async function editRecord(id) {
   document.getElementById('input-body-soap').checked = record.body_soap === 1
   document.getElementById('input-hair-wash').checked = record.hair_wash === 1
   document.getElementById('input-dry-shampoo').checked = record.dry_shampoo === 1
+  document.getElementById('input-face-wash').checked = record.face_wash === 1
   document.getElementById('input-cat-shower').checked = record.cat_shower === 1
   document.getElementById('input-teeth-brush').checked = record.teeth_brush === 1
   document.getElementById('input-feet-wash').checked = record.feet_wash === 1
+  document.getElementById('input-bath').checked = record.bath === 1
+  document.getElementById('input-exfoliation').checked = record.exfoliation === 1
   
   // 폼 제출 이벤트 변경 (수정 모드)
   const form = document.getElementById('add-form')
@@ -1131,9 +1188,12 @@ async function editRecord(id) {
       body_soap: document.getElementById('input-body-soap').checked,
       hair_wash: document.getElementById('input-hair-wash').checked,
       dry_shampoo: document.getElementById('input-dry-shampoo').checked,
+      face_wash: document.getElementById('input-face-wash').checked,
       cat_shower: document.getElementById('input-cat-shower').checked,
       teeth_brush: document.getElementById('input-teeth-brush').checked,
-      feet_wash: document.getElementById('input-feet-wash').checked
+      feet_wash: document.getElementById('input-feet-wash').checked,
+      bath: document.getElementById('input-bath').checked,
+      exfoliation: document.getElementById('input-exfoliation').checked
     }
     
     try {
@@ -1209,12 +1269,15 @@ function updateFooterStats() {
 // ============================================
 function getChecklistIcons(record) {
   const icons = []
-  if (record.body_soap) icons.push('🧼')
+  if (record.bath) icons.push('🛁')  // 목욕 (Body Soap 포함)
+  else if (record.body_soap) icons.push('🧼')  // Body Soap만
+  if (record.exfoliation) icons.push('🧽')  // 각질제거
   if (record.hair_wash) icons.push('🧴')
   else if (record.dry_shampoo) icons.push('🧴✨')  // 드라이샴푸 (머리 안 감은 경우만)
-  if (record.cat_shower) icons.push('🐱💧')  // 얼굴만 물로 헹굼
+  if (record.face_wash) icons.push('🧼😊')  // 제대로 세수 (세안제 사용)
+  if (record.cat_shower) icons.push('🐱💧')  // 고양이세수 (물로만 헹굼)
   if (record.teeth_brush) icons.push('🪥')
-  if (record.feet_wash) icons.push('🦶')
+  if (record.feet_wash && !record.body_soap && !record.bath) icons.push('🦶')  // 발만 씻은 경우만 표시
   return icons.join(' ')
 }
 
@@ -1261,11 +1324,13 @@ function showTab(tabName) {
   // 모든 탭 숨기기
   document.getElementById('content-report').classList.add('hidden')
   document.getElementById('content-scorecard').classList.add('hidden')
+  document.getElementById('content-rewards').classList.add('hidden')
   document.getElementById('content-settings').classList.add('hidden')
   
   // 모든 탭 버튼 비활성화
   document.getElementById('tab-report').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
   document.getElementById('tab-scorecard').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
+  document.getElementById('tab-rewards').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
   document.getElementById('tab-settings').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
   
   // 선택한 탭 표시
@@ -1276,6 +1341,11 @@ function showTab(tabName) {
     document.getElementById('content-scorecard').classList.remove('hidden')
     document.getElementById('tab-scorecard').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
     renderScorecard()
+  } else if (tabName === 'rewards') {
+    document.getElementById('content-rewards').classList.remove('hidden')
+    document.getElementById('tab-rewards').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
+    loadRewards()
+    loadGoals()
   } else if (tabName === 'settings') {
     document.getElementById('content-settings').classList.remove('hidden')
     document.getElementById('tab-settings').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
@@ -1364,3 +1434,437 @@ document.addEventListener('DOMContentLoaded', () => {
     })
   }
 })
+
+// ============================================
+// Changelog Modal
+// ============================================
+function showChangelog() {
+  document.getElementById('changelog-modal').classList.remove('hidden')
+  document.getElementById('changelog-modal').classList.add('flex')
+}
+
+function hideChangelog() {
+  document.getElementById('changelog-modal').classList.add('hidden')
+  document.getElementById('changelog-modal').classList.remove('flex')
+}
+
+// ============================================
+// Rewards System
+// ============================================
+let allRewards = { points: { total: 0, lifetime: 0 }, rewards: { pending: [], claimed: [] }, transactions: [] }
+let allGoals = []
+
+async function loadRewards() {
+  try {
+    const response = await fetch('/api/rewards')
+    const data = await response.json()
+    
+    if (data.success) {
+      allRewards = data
+      renderRewards()
+    }
+  } catch (error) {
+    console.error('Failed to load rewards:', error)
+  }
+}
+
+async function loadGoals() {
+  try {
+    const response = await fetch('/api/rewards/goals')
+    const data = await response.json()
+    
+    if (data.success) {
+      allGoals = data.goals
+      renderGoals()
+    }
+  } catch (error) {
+    console.error('Failed to load goals:', error)
+  }
+}
+
+function renderRewards() {
+  // Update points display
+  document.getElementById('total-points').textContent = allRewards.points.total
+  document.getElementById('lifetime-points').textContent = allRewards.points.lifetime
+  
+  // Pending rewards count
+  document.getElementById('pending-count').textContent = allRewards.rewards.pending.length
+  
+  // Render pending rewards
+  const pendingContainer = document.getElementById('pending-rewards-container')
+  if (allRewards.rewards.pending.length === 0) {
+    pendingContainer.innerHTML = '<p class="text-gray-500">No pending rewards yet. Keep showering!</p>'
+  } else {
+    pendingContainer.innerHTML = allRewards.rewards.pending.map(reward => `
+      <div class="border rounded-lg p-4 mb-3 hover:shadow-lg transition-shadow">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h4 class="font-bold text-gray-900 mb-1">${reward.title}</h4>
+            <p class="text-sm text-gray-600 mb-2">${reward.description || ''}</p>
+            <div class="flex items-center space-x-3 text-sm">
+              <span class="text-green-600 font-semibold">${reward.value}</span>
+              <span class="text-gray-500">Achieved: ${reward.achieved_date}</span>
+            </div>
+          </div>
+          <div class="flex flex-col space-y-2 ml-4">
+            <button onclick="claimReward(${reward.id})" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-semibold">
+              Claim Now
+            </button>
+            <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm">
+              Keep
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('')
+  }
+  
+  // Render transactions
+  const transactionsContainer = document.getElementById('transactions-container')
+  if (allRewards.transactions.length === 0) {
+    transactionsContainer.innerHTML = '<p class="text-gray-500">No activity yet.</p>'
+  } else {
+    transactionsContainer.innerHTML = `
+      <div class="space-y-2">
+        ${allRewards.transactions.slice(0, 10).map(tx => `
+          <div class="flex items-center justify-between py-2 border-b">
+            <div>
+              <p class="text-sm font-medium text-gray-900">${tx.reason}</p>
+              <p class="text-xs text-gray-500">${new Date(tx.created_at).toLocaleDateString()}</p>
+            </div>
+            <span class="font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}">
+              ${tx.amount > 0 ? '+' : ''}${tx.amount} pts
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    `
+  }
+}
+
+function renderGoals() {
+  const container = document.getElementById('active-goals-container')
+  
+  if (allGoals.length === 0) {
+    container.innerHTML = '<p class="text-gray-500">No active goals yet.</p>'
+    return
+  }
+  
+  container.innerHTML = allGoals.map(goal => {
+    const percentage = Math.min(100, Math.round((goal.current / goal.target) * 100))
+    const statusColor = goal.status === 'completed' ? 'green' : percentage >= 80 ? 'blue' : percentage >= 50 ? 'yellow' : 'gray'
+    
+    // Format last claimed date
+    const lastClaimedText = goal.last_claimed 
+      ? `Last claimed: ${new Date(goal.last_claimed).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : ''
+    
+    return `
+      <div class="border-l-4 border-${statusColor}-500 bg-${statusColor}-50 rounded-lg p-4 mb-4">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <h4 class="font-bold text-gray-900">${goal.title}</h4>
+              ${goal.status === 'completed' && goal.can_claim ? 
+                '<span class="px-2 py-0.5 bg-green-500 text-white text-xs rounded-full animate-pulse">Ready!</span>' : 
+                ''
+              }
+            </div>
+            <p class="text-sm text-gray-600">${goal.description}</p>
+          </div>
+          <span class="px-3 py-1 bg-white rounded-full text-sm font-semibold text-${statusColor}-600">
+            ${goal.type}
+          </span>
+        </div>
+        <div class="mb-2">
+          <div class="flex items-center justify-between text-sm mb-1">
+            <span class="text-gray-700">${goal.current} / ${goal.target}</span>
+            <span class="font-semibold text-gray-900">${percentage}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-${statusColor}-500 h-3 rounded-full transition-all" style="width: ${percentage}%"></div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-gray-600">
+            <i class="fas fa-gift mr-1"></i>${goal.reward}
+          </span>
+          ${goal.status === 'completed' ? 
+            '<span class="text-green-600 font-semibold text-sm">✅ Achieved!</span>' : 
+            `<span class="text-gray-500 text-sm">${goal.target - goal.current} to go</span>`
+          }
+        </div>
+        
+        ${goal.can_claim ? `
+          <button 
+            onclick="claimGoalReward('${goal.id}')" 
+            class="w-full mt-3 px-4 py-2 bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white rounded-lg font-medium transition shadow-lg hover:shadow-xl"
+          >
+            🎁 Claim Reward
+          </button>
+        ` : goal.last_claimed ? `
+          <div class="mt-3 text-xs text-gray-500 text-center">
+            ${lastClaimedText}
+          </div>
+        ` : ''}
+      </div>
+    `
+  }).join('')
+}
+
+async function claimGoalReward(goalId) {
+  if (!confirm('Claim this goal reward?\n\nThis will add the reward to your Pending Rewards where you can choose to Keep or Claim it!')) return
+  
+  try {
+    const response = await fetch(`/api/rewards/goals/${goalId}/claim`, {
+      method: 'POST'
+    })
+    
+    const result = await response.json()
+    
+    if (result.success) {
+      alert('🎉 ' + result.message)
+      await loadRewards()
+      await loadGoals()
+    } else {
+      alert('❌ ' + result.error)
+    }
+  } catch (error) {
+    console.error('Error claiming goal reward:', error)
+    alert('Error occurred while claiming goal reward.')
+  }
+}
+
+async function claimReward(rewardId) {
+  if (!confirm('Claim this reward? A KakaoTalk message will be sent!')) return
+  
+  try {
+    const response = await fetch(`/api/rewards/${rewardId}/claim`, {
+      method: 'POST'
+    })
+    
+    const result = await response.json()
+    
+    if (result.success) {
+      alert(result.message)
+      await loadRewards()
+    } else {
+      alert('Failed to claim reward.')
+    }
+  } catch (error) {
+    console.error('Error claiming reward:', error)
+    alert('Error occurred while claiming reward.')
+  }
+}
+
+function showPointShop() {
+  const currentPoints = allRewards?.points?.total_points || 0
+  
+  const modal = document.createElement('div')
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
+      <!-- Close Button -->
+      <button 
+        onclick="this.closest('.fixed').remove()" 
+        class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full text-white hover:text-gray-100 transition"
+        aria-label="Close"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-6 rounded-t-lg">
+        <h2 class="text-2xl font-bold mb-2">🎫 Reward Token Shop</h2>
+        <p class="text-yellow-100">Current Points: <span class="text-2xl font-bold">${currentPoints}</span></p>
+      </div>
+
+      <!-- Shop Items -->
+      <div class="p-6 space-y-4">
+        <!-- Small Treat Token -->
+        <div class="border-2 border-yellow-300 rounded-lg p-4 hover:shadow-lg transition ${currentPoints >= 50 ? 'bg-yellow-50' : 'bg-gray-50 opacity-60'}">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">☕ Small Treat Token</h3>
+              <p class="text-sm text-gray-600">Choose one when redeemed:</p>
+              <ul class="text-sm text-gray-700 ml-4 mt-1">
+                <li>• Coffee at favorite cafe</li>
+                <li>• Dessert treat</li>
+                <li>• Snack box</li>
+              </ul>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-yellow-600">50</div>
+              <div class="text-xs text-gray-500">points</div>
+            </div>
+          </div>
+          <button 
+            onclick="redeemToken('Small Treat Token', 50)" 
+            class="w-full mt-3 px-4 py-2 rounded-lg font-medium transition ${currentPoints >= 50 ? 'bg-yellow-400 hover:bg-yellow-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
+            ${currentPoints < 50 ? 'disabled' : ''}
+          >
+            ${currentPoints >= 50 ? 'Redeem Token 🎫' : 'Not Enough Points'}
+          </button>
+        </div>
+
+        <!-- Medium Reward Token -->
+        <div class="border-2 border-orange-300 rounded-lg p-4 hover:shadow-lg transition ${currentPoints >= 100 ? 'bg-orange-50' : 'bg-gray-50 opacity-60'}">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">🍔 Medium Reward Token</h3>
+              <p class="text-sm text-gray-600">Choose one when redeemed:</p>
+              <ul class="text-sm text-gray-700 ml-4 mt-1">
+                <li>• Restaurant meal (~$25)</li>
+                <li>• Shopping budget ($20-30)</li>
+                <li>• Entertainment package</li>
+              </ul>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-orange-600">100</div>
+              <div class="text-xs text-gray-500">points</div>
+            </div>
+          </div>
+          <button 
+            onclick="redeemToken('Medium Reward Token', 100)" 
+            class="w-full mt-3 px-4 py-2 rounded-lg font-medium transition ${currentPoints >= 100 ? 'bg-orange-400 hover:bg-orange-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
+            ${currentPoints < 100 ? 'disabled' : ''}
+          >
+            ${currentPoints >= 100 ? 'Redeem Token 🎫' : 'Not Enough Points'}
+          </button>
+        </div>
+
+        <!-- Large Reward Token -->
+        <div class="border-2 border-red-300 rounded-lg p-4 hover:shadow-lg transition ${currentPoints >= 200 ? 'bg-red-50' : 'bg-gray-50 opacity-60'}">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">🎁 Large Reward Token</h3>
+              <p class="text-sm text-gray-600">Choose one when redeemed:</p>
+              <ul class="text-sm text-gray-700 ml-4 mt-1">
+                <li>• Nice restaurant meal (~$50)</li>
+                <li>• Shopping spree ($40-60)</li>
+                <li>• Special experience</li>
+              </ul>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-red-600">200</div>
+              <div class="text-xs text-gray-500">points</div>
+            </div>
+          </div>
+          <button 
+            onclick="redeemToken('Large Reward Token', 200)" 
+            class="w-full mt-3 px-4 py-2 rounded-lg font-medium transition ${currentPoints >= 200 ? 'bg-red-400 hover:bg-red-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
+            ${currentPoints < 200 ? 'disabled' : ''}
+          >
+            ${currentPoints >= 200 ? 'Redeem Token 🎫' : 'Not Enough Points'}
+          </button>
+        </div>
+
+        <!-- Premium Token -->
+        <div class="border-2 border-purple-300 rounded-lg p-4 hover:shadow-lg transition ${currentPoints >= 500 ? 'bg-purple-50' : 'bg-gray-50 opacity-60'}">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">💎 Premium Token</h3>
+              <p class="text-sm text-gray-600">Choose one when redeemed:</p>
+              <ul class="text-sm text-gray-700 ml-4 mt-1">
+                <li>• Korea care package (~$100)</li>
+                <li>• Premium shopping ($80-120)</li>
+                <li>• Special gift package</li>
+              </ul>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-purple-600">500</div>
+              <div class="text-xs text-gray-500">points</div>
+            </div>
+          </div>
+          <button 
+            onclick="redeemToken('Premium Token', 500)" 
+            class="w-full mt-3 px-4 py-2 rounded-lg font-medium transition ${currentPoints >= 500 ? 'bg-purple-400 hover:bg-purple-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
+            ${currentPoints < 500 ? 'disabled' : ''}
+          >
+            ${currentPoints >= 500 ? 'Redeem Token 🎫' : 'Not Enough Points'}
+          </button>
+        </div>
+
+        <!-- Legendary Token -->
+        <div class="border-2 border-pink-300 rounded-lg p-4 hover:shadow-lg transition ${currentPoints >= 1000 ? 'bg-pink-50' : 'bg-gray-50 opacity-60'}">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">👑 Legendary Token</h3>
+              <p class="text-sm text-gray-600">Choose one when redeemed:</p>
+              <ul class="text-sm text-gray-700 ml-4 mt-1">
+                <li>• Korea mega box (~$200)</li>
+                <li>• Premium experience package</li>
+                <li>• Special surprise gift</li>
+              </ul>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-pink-600">1000</div>
+              <div class="text-xs text-gray-500">points</div>
+            </div>
+          </div>
+          <button 
+            onclick="redeemToken('Legendary Token', 1000)" 
+            class="w-full mt-3 px-4 py-2 rounded-lg font-medium transition ${currentPoints >= 1000 ? 'bg-pink-400 hover:bg-pink-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
+            ${currentPoints < 1000 ? 'disabled' : ''}
+          >
+            ${currentPoints >= 1000 ? 'Redeem Token 🎫' : 'Not Enough Points'}
+          </button>
+        </div>
+      </div>
+
+      <!-- Info Box -->
+      <div class="bg-blue-50 border-t-2 border-blue-200 p-4 mx-6 mb-4 rounded-lg">
+        <p class="text-sm text-blue-800">
+          <strong>💡 How it works:</strong> Redeem points for tokens now, choose the exact reward later! 
+          This gives you flexibility to decide what you want when the time comes. 🎁
+        </p>
+      </div>
+
+      <!-- Close Button -->
+      <div class="p-6 pt-0">
+        <button 
+          onclick="this.closest('.fixed').remove()" 
+          class="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  `
+  
+  document.body.appendChild(modal)
+}
+
+async function redeemToken(tokenName, pointsCost) {
+  if (!confirm(`Redeem ${pointsCost} points for ${tokenName}?\n\nYou can choose the specific reward later when you want to use it!`)) {
+    return
+  }
+
+  try {
+    const response = await fetch('/api/rewards/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        item_name: tokenName,
+        points_cost: pointsCost
+      })
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      alert(`✅ ${tokenName} redeemed!\n\nYour token is saved and you can choose the specific reward later.\nCheck KakaoTalk for confirmation! 🎫`)
+      
+      // Close modal and refresh rewards
+      document.querySelector('.fixed.inset-0')?.remove()
+      loadRewards()
+    } else {
+      alert(`❌ Failed to redeem: ${result.error}`)
+    }
+  } catch (error) {
+    console.error('Error redeeming token:', error)
+    alert('❌ Error redeeming token. Please try again.')
+  }
+}
