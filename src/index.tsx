@@ -1955,7 +1955,7 @@ app.get('/', (c) => {
                 
                 <div class="border-t mt-6 pt-6 text-center text-sm text-gray-500">
                     <p>© 2026 WAIV SPR Project. Made with 💙 for HW's hygiene improvement.</p>
-                    <p class="mt-1">IPR Parody Edition | v1.2.0</p>
+                    <p class="mt-1">IPR Parody Edition | v1.3.0</p>
                     <p class="mt-2 text-xs">
                         <a href="#" onclick="showChangelog(); return false;" class="text-blue-600 hover:text-blue-800 underline">
                             📝 Changelog
@@ -1976,6 +1976,26 @@ app.get('/', (c) => {
                 </div>
                 
                 <div class="space-y-6">
+                    <!-- v1.3.0 -->
+                    <div class="border-l-4 border-indigo-500 pl-4">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full font-semibold text-sm">v1.3.0</span>
+                            <span class="text-gray-500 text-sm">2026-05-17</span>
+                        </div>
+                        <h4 class="font-bold text-gray-900 mb-2">🏆 Rewards System & Points Update</h4>
+                        <ul class="space-y-1 text-sm text-gray-700">
+                            <li>💰 <strong>Point Crediting System</strong>: Automatic point accumulation based on shower performance (95+=10pts, 85-94=7pts, 70-84=5pts, 60-69=3pts, <60=1pt)</li>
+                            <li>🎯 <strong>Goal-Based Rewards</strong>: Streak goals (14/30/60/100 days) and average score goals (7/30 days)</li>
+                            <li>🛁 <strong>Bath & Exfoliation</strong>: New checklist items with bonus points (Bath +10pts, Exfoliation +5pts)</li>
+                            <li>🐱 <strong>Cat Face Wash</strong>: Renamed from "Cat Shower" for clarity</li>
+                            <li>📈 <strong>Chart Trendline</strong>: Linear regression trendline added to Points Trend chart in Scorecard</li>
+                            <li>🎫 <strong>Token Shop</strong>: Redeem points for rewards (50/100/200/500/1000 pts tiers)</li>
+                            <li>✅ <strong>Keep/Claim System</strong>: Choose when to claim goal rewards for timing flexibility</li>
+                            <li>📊 <strong>Transaction History</strong>: Full point earning and spending history tracking</li>
+                            <li>🔄 <strong>Backfill Support</strong>: Retroactive point crediting for existing records (32 records, 98 points)</li>
+                        </ul>
+                    </div>
+
                     <!-- v1.2.0 -->
                     <div class="border-l-4 border-blue-500 pl-4">
                         <div class="flex items-center space-x-2 mb-2">
