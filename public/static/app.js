@@ -1657,7 +1657,10 @@ async function claimReward(rewardId) {
   }
 }
 
-function showPointShop() {
+async function showPointShop() {
+  // Reload rewards to get latest points
+  await loadRewards()
+  
   const currentPoints = allRewards?.points?.total || 0
   
   const modal = document.createElement('div')
