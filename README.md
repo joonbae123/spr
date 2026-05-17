@@ -11,19 +11,50 @@ HW 친구의 위생 습관을 데이터로 개선시키는 패러디 프로젝�
 
 ## 🌐 URLs
 
-- **Sandbox URL**: https://3001-inv4yn5x3mtvk6th3pan9-2e1b9533.sandbox.novita.ai
+- **Production URL**: https://spr-9u7.pages.dev
+- **Latest Deployment**: https://30a3ed4f.spr-9u7.pages.dev
 - **프로젝트 위치**: `/home/user/spr/`
+
+## 🏆 리워드 시스템
+
+### 포인트 적립
+매 샤워 기록마다 총점에 따라 포인트 자동 적립:
+- **95점 이상**: 10 pts
+- **85-94점**: 7 pts
+- **70-84점**: 5 pts
+- **60-69점**: 3 pts
+- **60점 미만**: 1 pt
+
+### 목표 달성 보상
+- **7일 연속 평균 75점 이상**: 편의점 간식 (~$5)
+- **30일 평균 80점 이상**: 스타벅스 쿠폰 (~$30)
+- **14일 연속 Quality Streak (70점 이상)**: Korea snack box (~$30)
+- **30일 연속 Quality Streak**: Korea care package (~$80)
+- **60일 연속 Quality Streak**: Korea mega box (~$150)
+- **100일 연속 Quality Streak**: ✈️ USA Trip!
+
+### 토큰샵
+적립한 포인트로 리워드 교환:
+- 스타벅스 음료 (30 pts)
+- 편의점 간식 (10 pts)
+- 치킨 (100 pts)
+- 기타 리워드 추가 예정
 
 ## 📊 KPI 시스템
 
 ### 1. 완성도 점수 (Completeness Score)
 - **측정**: 체크리스트 완료율
 - **항목**:
-  - 🧼 비누칠 제대로 함
-  - 🧴 머리 감음
-  - 🪥 이 닦음
-  - 🦶 발 씻음
-- **계산**: (완료 항목 / 4) × 100
+  - 🧼 비누칠 제대로 함 (Body Soap)
+  - 🧴 머리 감음 (Hair Wash)
+  - 🧴 드라이샴푸 (Dry Shampoo)
+  - 🧴 세안제 세수 (Face Wash)
+  - 🐱 고양이 세수 (Cat Face Wash)
+  - 🪥 이 닦음 (Teeth Brush)
+  - 🦶 발 씻음 (Feet Wash)
+  - 🛁 목욕 (Bath) - +10pts 보너스
+  - 🧽 각질 제거 (Exfoliation) - +5pts 보너스 (목욕과 함께만)
+- **계산**: 체크리스트 완료 점수 합계 (최대 115점)
 - **가중치**: 40%
 
 ### 2. 샤워 주기 점수 (Frequency Score)
@@ -73,8 +104,13 @@ CREATE TABLE shower_records (
   -- 체크리스트
   body_soap INTEGER,      -- 비누칠
   hair_wash INTEGER,      -- 머리감기
+  dry_shampoo INTEGER,    -- 드라이샴푸
+  face_wash INTEGER,      -- 세안제 세수
+  cat_shower INTEGER,     -- 고양이 세수
   teeth_brush INTEGER,    -- 이닦기
   feet_wash INTEGER,      -- 발씻기
+  bath INTEGER,           -- 목욕
+  exfoliation INTEGER,    -- 각질 제거
   
   -- 계산 점수
   completeness_score REAL,
@@ -89,30 +125,72 @@ CREATE TABLE shower_records (
 )
 ```
 
+### user_points 테이블
+
+```sql
+CREATE TABLE user_points (
+  id INTEGER PRIMARY KEY,
+  total_points INTEGER,      -- 현재 보유 포인트
+  lifetime_points INTEGER,   -- 누적 획득 포인트
+  last_updated DATETIME
+)
+```
+
+### point_transactions 테이블
+
+```sql
+CREATE TABLE point_transactions (
+  id INTEGER PRIMARY KEY,
+  amount INTEGER,            -- 포인트 증감량
+  reason TEXT,               -- 사유
+  transaction_type TEXT,     -- 'earn' or 'spend'
+  related_record_id INTEGER, -- 연결된 샤워 기록 ID
+  created_at DATETIME
+)
+```
+
 ## 📈 주요 기능
 
 ### 1. Report 페이지
 - 샤워 기록 리스트 조회
-- **날짜 범위 필터링** 🆕
+- **날짜 범위 필터링**
   - 시작/종료 날짜 선택
   - 빠른 필터: 오늘, 최근 7일, 최근 30일, 전체
   - 필터 결과 표시 (기간 및 레코드 수)
 - 날짜, 시간, 완성도, 주기, 점수, 등급 표시
 - 고양이샤워 플래그 표시
+- 기록 수정/삭제 기능
 
 ### 2. Scorecard 페이지
 - 등급별 통계 (S/A/B/C/D 분포)
-- 점수 트렌드 차트 (최근 30일)
+- **점수 트렌드 차트** (최근 30일) + **추세선 (Linear Regression)**
 - 고양이샤워 통계
   - 고양이샤워 비율
   - 총 샤워 횟수
   - 평균 샤워 주기
 
-### 3. 샤워 기록 추가
+### 3. Rewards 페이지 ⭐
+- **현재 포인트 표시** (보유/누적)
+- **목표 달성 현황** (Active Goals)
+  - 진행률 표시 (Progress Bar)
+  - Keep/Claim 버튼으로 보상 선택
+- **보상 내역** (Pending Rewards)
+  - 클레임한 보상 목록
+- **토큰샵** (Points Shop)
+  - 포인트로 리워드 교환
+  - 교환 내역 카카오톡 전송
+
+### 4. Badges 페이지
+- 달성한 뱃지 표시
+- 샤워 마일스톤 (10회, 50회, 100회 등)
+- Quality Shower 연속 기록
+
+### 5. 샤워 기록 추가
 - 날짜/시간 입력
 - 소요 시간 입력
-- 4가지 체크리스트 선택
+- **9가지 체크리스트** 선택 (목욕/각질 제거 포함)
 - 자동 점수 계산 및 등급 부여
+- **자동 포인트 적립**
 
 ## 🎨 디자인 시스템
 
@@ -138,7 +216,7 @@ npm run db:reset
 pm2 start ecosystem.config.cjs
 
 # 테스트
-curl http://localhost:3001
+curl http://localhost:3000
 ```
 
 ### 데이터베이스 관리
@@ -246,14 +324,18 @@ npm run clean-port
 
 ## 🔮 향후 계획
 
-- [x] ~~날짜 범위 필터링~~ ✅ (완료)
-- [ ] 샤워 기록 수정/삭제 기능
+- [x] ~~날짜 범위 필터링~~ ✅
+- [x] ~~샤워 기록 수정/삭제 기능~~ ✅
+- [x] ~~리워드 시스템~~ ✅
+- [x] ~~포인트 적립 시스템~~ ✅
+- [x] ~~Quality Streak 목표~~ ✅
+- [x] ~~목욕/각질 제거 항목~~ ✅
+- [x] ~~차트 추세선~~ ✅
 - [ ] 페이지네이션 (한 페이지 20개)
 - [ ] 월별 요약 통계
 - [ ] 주간/월간 리포트
 - [ ] 샤워 알림 기능 (n일째 안 씻음!)
 - [ ] 친구들과 비교 (멀티 유저)
-- [ ] 샤워 뱃지 시스템
 - [ ] PDF 리포트 다운로드
 
 ## 📞 문의
@@ -262,6 +344,7 @@ IPR 패러디 프로젝트입니다. 실제 HW 친구의 위생 개선을 위해
 
 ---
 
-**Last Updated**: 2026-04-27
-**Version**: 1.0.0
+**Last Updated**: 2026-05-17
+**Version**: 1.2.0
 **Status**: ✅ Active
+**Current Points**: 98 pts (32 records backfilled)
