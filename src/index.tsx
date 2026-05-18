@@ -385,6 +385,31 @@ app.get('/api/stats', async (c) => {
       FROM shower_records
     `).first()
 
+    // 항목별 빈도 통계
+    const itemFrequency = await DB.prepare(`
+      SELECT 
+        COUNT(*) as total_records,
+        SUM(body_soap) as body_soap_count,
+        SUM(hair_wash) as hair_wash_count,
+        SUM(dry_shampoo) as dry_shampoo_count,
+        SUM(face_wash) as face_wash_count,
+        SUM(cat_shower) as cat_shower_count,
+        SUM(teeth_brush) as teeth_brush_count,
+        SUM(feet_wash) as feet_wash_count,
+        SUM(bath) as bath_count,
+        SUM(exfoliation) as exfoliation_count,
+        ROUND(SUM(body_soap) * 100.0 / COUNT(*), 1) as body_soap_rate,
+        ROUND(SUM(hair_wash) * 100.0 / COUNT(*), 1) as hair_wash_rate,
+        ROUND(SUM(dry_shampoo) * 100.0 / COUNT(*), 1) as dry_shampoo_rate,
+        ROUND(SUM(face_wash) * 100.0 / COUNT(*), 1) as face_wash_rate,
+        ROUND(SUM(cat_shower) * 100.0 / COUNT(*), 1) as cat_shower_rate,
+        ROUND(SUM(teeth_brush) * 100.0 / COUNT(*), 1) as teeth_brush_rate,
+        ROUND(SUM(feet_wash) * 100.0 / COUNT(*), 1) as feet_wash_rate,
+        ROUND(SUM(bath) * 100.0 / COUNT(*), 1) as bath_rate,
+        ROUND(SUM(exfoliation) * 100.0 / COUNT(*), 1) as exfoliation_rate
+      FROM shower_records
+    `).first()
+
     return c.json({
       success: true,
       stats: {
@@ -394,7 +419,8 @@ app.get('/api/stats', async (c) => {
         recentTrend: recentTrend.results,
         avg_score: overallStats.avg_score || 0,
         total_count: overallStats.total_count || 0,
-        cat_shower_rate: overallStats.cat_shower_rate || 0
+        cat_shower_rate: overallStats.cat_shower_rate || 0,
+        itemFrequency: itemFrequency
       }
     })
   } catch (error) {
@@ -1523,6 +1549,15 @@ app.get('/', (c) => {
                     </h3>
                     <div id="cat-shower-stats"></div>
                 </div>
+            </div>
+            
+            <!-- Item Frequency Stats -->
+            <div class="bg-white rounded-lg shadow p-6 mt-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">
+                    📊 Checklist Item Frequency
+                    <i class="fas fa-info-circle text-gray-400 cursor-help ml-2" title="How often you complete each checklist item"></i>
+                </h3>
+                <div id="item-frequency-stats"></div>
             </div>
         </div>
 

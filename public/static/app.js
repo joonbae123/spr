@@ -735,6 +735,7 @@ function renderScorecard() {
   renderBadges()  // 뱃지 렌더링
   renderTrendChart()
   renderCatShowerStats()
+  renderItemFrequency()  // 항목별 빈도 렌더링
 }
 
 // ============================================
@@ -1027,6 +1028,53 @@ function renderCatShowerStats() {
           </div>
         </div>
       ` : ''}
+    </div>
+  `
+  
+  container.innerHTML = html
+}
+
+// Item Frequency 렌더링
+function renderItemFrequency() {
+  const container = document.getElementById('item-frequency-stats')
+  const freq = allStats.itemFrequency
+  
+  if (!freq || !freq.total_records) {
+    container.innerHTML = '<p class="text-gray-500">No data available</p>'
+    return
+  }
+  
+  const items = [
+    { name: 'Body Soap', icon: '🧼', count: freq.body_soap_count, rate: freq.body_soap_rate, color: 'blue' },
+    { name: 'Hair Wash', icon: '🧴', count: freq.hair_wash_count, rate: freq.hair_wash_rate, color: 'purple' },
+    { name: 'Face Wash', icon: '🧼😊', count: freq.face_wash_count, rate: freq.face_wash_rate, color: 'green' },
+    { name: 'Teeth Brush', icon: '🪥', count: freq.teeth_brush_count, rate: freq.teeth_brush_rate, color: 'cyan' },
+    { name: 'Feet Wash', icon: '🦶', count: freq.feet_wash_count, rate: freq.feet_wash_rate, color: 'orange' },
+    { name: 'Bath', icon: '🛁', count: freq.bath_count, rate: freq.bath_rate, color: 'indigo' },
+    { name: 'Exfoliation', icon: '🧽', count: freq.exfoliation_count, rate: freq.exfoliation_rate, color: 'pink' },
+    { name: 'Dry Shampoo', icon: '💨', count: freq.dry_shampoo_count, rate: freq.dry_shampoo_rate, color: 'gray' },
+    { name: 'Cat Face Wash', icon: '🐱', count: freq.cat_shower_count, rate: freq.cat_shower_rate, color: 'red' }
+  ]
+  
+  const html = `
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      ${items.map(item => `
+        <div class="border-2 border-${item.color}-200 rounded-lg p-4 bg-${item.color}-50">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">${item.icon}</span>
+            <span class="text-2xl font-bold text-${item.color}-600">${item.rate || 0}%</span>
+          </div>
+          <div class="text-sm font-semibold text-gray-800">${item.name}</div>
+          <div class="text-xs text-gray-600 mt-1">${item.count || 0} / ${freq.total_records} records</div>
+          <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div class="bg-${item.color}-500 h-2 rounded-full" style="width: ${item.rate || 0}%"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+      <i class="fas fa-info-circle mr-2"></i>
+      <strong>Tip:</strong> Maintain high frequency for essential items (Body Soap, Hair Wash, Face Wash) to improve your overall hygiene score!
     </div>
   `
   
