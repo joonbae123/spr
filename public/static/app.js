@@ -1169,6 +1169,49 @@ function showAddForm() {
   // 시간대 기준으로 현재 날짜/시간 설정
   document.getElementById('input-date').value = getCurrentDateInTimezone()
   document.getElementById('input-time').value = getCurrentTimeInTimezone()
+  
+  // 자동 체크 로직 설정
+  setupAutoCheckLogic()
+}
+
+// 자동 체크 로직 (샤워하면 당연히 세수도 함!)
+function setupAutoCheckLogic() {
+  const bodySoap = document.getElementById('input-body-soap')
+  const hairWash = document.getElementById('input-hair-wash')
+  const faceWash = document.getElementById('input-face-wash')
+  const bath = document.getElementById('input-bath')
+  
+  // 이미 이벤트 리스너가 있으면 제거 (중복 방지)
+  const newBodySoap = bodySoap.cloneNode(true)
+  const newHairWash = hairWash.cloneNode(true)
+  const newBath = bath.cloneNode(true)
+  bodySoap.parentNode.replaceChild(newBodySoap, bodySoap)
+  hairWash.parentNode.replaceChild(newHairWash, hairWash)
+  bath.parentNode.replaceChild(newBath, bath)
+  
+  // Body Soap 체크 → Face Wash 자동 체크
+  newBodySoap.addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById('input-face-wash').checked = true
+    }
+  })
+  
+  // Hair Wash 체크 → Body Soap + Face Wash 자동 체크
+  newHairWash.addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById('input-body-soap').checked = true
+      document.getElementById('input-face-wash').checked = true
+    }
+  })
+  
+  // Bath 체크 → Body Soap + Face Wash + Hair Wash 권장
+  newBath.addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById('input-body-soap').checked = true
+      document.getElementById('input-face-wash').checked = true
+      // Hair Wash는 권장만 (자동 체크 안 함 - 목욕할 때 머리 안 감을 수도 있으니까)
+    }
+  })
 }
 
 function hideAddForm() {
@@ -1228,6 +1271,9 @@ async function editRecord(id) {
   document.getElementById('input-feet-wash').checked = record.feet_wash === 1
   document.getElementById('input-bath').checked = record.bath === 1
   document.getElementById('input-exfoliation').checked = record.exfoliation === 1
+  
+  // 자동 체크 로직 설정
+  setupAutoCheckLogic()
   
   // 폼 제출 이벤트 변경 (수정 모드)
   const form = document.getElementById('add-form')
