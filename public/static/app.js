@@ -1045,36 +1045,46 @@ function renderItemFrequency() {
   }
   
   const items = [
-    { name: 'Body Soap', icon: '🧼', count: freq.body_soap_count, rate: freq.body_soap_rate, color: 'blue' },
-    { name: 'Hair Wash', icon: '🧴', count: freq.hair_wash_count, rate: freq.hair_wash_rate, color: 'purple' },
-    { name: 'Face Wash', icon: '🧼😊', count: freq.face_wash_count, rate: freq.face_wash_rate, color: 'green' },
-    { name: 'Teeth Brush', icon: '🪥', count: freq.teeth_brush_count, rate: freq.teeth_brush_rate, color: 'cyan' },
-    { name: 'Feet Wash', icon: '🦶', count: freq.feet_wash_count, rate: freq.feet_wash_rate, color: 'orange' },
-    { name: 'Bath', icon: '🛁', count: freq.bath_count, rate: freq.bath_rate, color: 'indigo' },
-    { name: 'Exfoliation', icon: '🧽', count: freq.exfoliation_count, rate: freq.exfoliation_rate, color: 'pink' },
-    { name: 'Dry Shampoo', icon: '💨', count: freq.dry_shampoo_count, rate: freq.dry_shampoo_rate, color: 'gray' },
-    { name: 'Cat Face Wash', icon: '🐱', count: freq.cat_shower_count, rate: freq.cat_shower_rate, color: 'red' }
+    { name: 'Body Soap', icon: '🧼', count: freq.body_soap_count, freq: freq.body_soap_freq, color: 'blue' },
+    { name: 'Hair Wash', icon: '🧴', count: freq.hair_wash_count, freq: freq.hair_wash_freq, color: 'purple' },
+    { name: 'Face Wash', icon: '🧼😊', count: freq.face_wash_count, freq: freq.face_wash_freq, color: 'green' },
+    { name: 'Teeth Brush', icon: '🪥', count: freq.teeth_brush_count, freq: freq.teeth_brush_freq, color: 'cyan' },
+    { name: 'Feet Wash', icon: '🦶', count: freq.feet_wash_count, freq: freq.feet_wash_freq, color: 'orange' },
+    { name: 'Bath', icon: '🛁', count: freq.bath_count, freq: freq.bath_freq, color: 'indigo' },
+    { name: 'Exfoliation', icon: '🧽', count: freq.exfoliation_count, freq: freq.exfoliation_freq, color: 'pink' },
+    { name: 'Dry Shampoo', icon: '💨', count: freq.dry_shampoo_count, freq: freq.dry_shampoo_freq, color: 'gray' },
+    { name: 'Cat Face Wash', icon: '🐱', count: freq.cat_shower_count, freq: freq.cat_shower_freq, color: 'red' }
   ]
   
   const html = `
+    <div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+      <i class="fas fa-calendar-alt mr-2"></i>
+      <strong>Period:</strong> ${freq.first_date} to ${freq.last_date} (${freq.total_days} days) | <strong>Total Records:</strong> ${freq.total_records}
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       ${items.map(item => `
-        <div class="border-2 border-${item.color}-200 rounded-lg p-4 bg-${item.color}-50">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-2xl">${item.icon}</span>
-            <span class="text-2xl font-bold text-${item.color}-600">${item.rate || 0}%</span>
+        <div class="border-2 border-${item.color}-200 rounded-lg p-4 bg-${item.color}-50 hover:shadow-md transition">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-3xl">${item.icon}</span>
+            <div class="text-right">
+              ${item.freq ? `
+                <span class="text-2xl font-bold text-${item.color}-600">${item.freq}</span>
+                <span class="text-sm text-gray-600 block">days</span>
+              ` : `
+                <span class="text-lg font-bold text-gray-400">N/A</span>
+              `}
+            </div>
           </div>
-          <div class="text-sm font-semibold text-gray-800">${item.name}</div>
-          <div class="text-xs text-gray-600 mt-1">${item.count || 0} / ${freq.total_records} records</div>
-          <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-            <div class="bg-${item.color}-500 h-2 rounded-full" style="width: ${item.rate || 0}%"></div>
+          <div class="text-sm font-semibold text-gray-800 mb-1">${item.name}</div>
+          <div class="text-xs text-gray-600">
+            ${item.count > 0 ? `${item.count} times (avg every ${item.freq} days)` : 'Not used yet'}
           </div>
         </div>
       `).join('')}
     </div>
-    <div class="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+    <div class="mt-4 p-3 bg-green-50 rounded-lg text-sm text-green-800">
       <i class="fas fa-info-circle mr-2"></i>
-      <strong>Tip:</strong> Maintain high frequency for essential items (Body Soap, Hair Wash, Face Wash) to improve your overall hygiene score!
+      <strong>Tip:</strong> Lower numbers mean higher frequency. Maintain consistent habits for Body Soap, Hair Wash, and Teeth Brush for optimal hygiene!
     </div>
   `
   

@@ -385,7 +385,15 @@ app.get('/api/stats', async (c) => {
       FROM shower_records
     `).first()
 
-    // 항목별 빈도 통계
+    // 항목별 빈도 통계 (날짜 범위 기반)
+    const dateRange = await DB.prepare(`
+      SELECT 
+        MIN(date) as first_date,
+        MAX(date) as last_date,
+        JULIANDAY(MAX(date)) - JULIANDAY(MIN(date)) + 1 as total_days
+      FROM shower_records
+    `).first()
+
     const itemFrequency = await DB.prepare(`
       SELECT 
         COUNT(*) as total_records,
@@ -397,18 +405,27 @@ app.get('/api/stats', async (c) => {
         SUM(teeth_brush) as teeth_brush_count,
         SUM(feet_wash) as feet_wash_count,
         SUM(bath) as bath_count,
-        SUM(exfoliation) as exfoliation_count,
-        ROUND(SUM(body_soap) * 100.0 / COUNT(*), 1) as body_soap_rate,
-        ROUND(SUM(hair_wash) * 100.0 / COUNT(*), 1) as hair_wash_rate,
-        ROUND(SUM(dry_shampoo) * 100.0 / COUNT(*), 1) as dry_shampoo_rate,
-        ROUND(SUM(face_wash) * 100.0 / COUNT(*), 1) as face_wash_rate,
-        ROUND(SUM(cat_shower) * 100.0 / COUNT(*), 1) as cat_shower_rate,
-        ROUND(SUM(teeth_brush) * 100.0 / COUNT(*), 1) as teeth_brush_rate,
-        ROUND(SUM(feet_wash) * 100.0 / COUNT(*), 1) as feet_wash_rate,
-        ROUND(SUM(bath) * 100.0 / COUNT(*), 1) as bath_rate,
-        ROUND(SUM(exfoliation) * 100.0 / COUNT(*), 1) as exfoliation_rate
+        SUM(exfoliation) as exfoliation_count
       FROM shower_records
     `).first()
+
+    // 평균 며칠마다 계산 (total_days / count)
+    const totalDays = dateRange.total_days || 1
+    const freq = {
+      ...itemFrequency,
+      total_days: totalDays,
+      first_date: dateRange.first_date,
+      last_date: dateRange.last_date,
+      body_soap_freq: itemFrequency.body_soap_count > 0 ? (totalDays / itemFrequency.body_soap_count).toFixed(1) : null,
+      hair_wash_freq: itemFrequency.hair_wash_count > 0 ? (totalDays / itemFrequency.hair_wash_count).toFixed(1) : null,
+      dry_shampoo_freq: itemFrequency.dry_shampoo_count > 0 ? (totalDays / itemFrequency.dry_shampoo_count).toFixed(1) : null,
+      face_wash_freq: itemFrequency.face_wash_count > 0 ? (totalDays / itemFrequency.face_wash_count).toFixed(1) : null,
+      cat_shower_freq: itemFrequency.cat_shower_count > 0 ? (totalDays / itemFrequency.cat_shower_count).toFixed(1) : null,
+      teeth_brush_freq: itemFrequency.teeth_brush_count > 0 ? (totalDays / itemFrequency.teeth_brush_count).toFixed(1) : null,
+      feet_wash_freq: itemFrequency.feet_wash_count > 0 ? (totalDays / itemFrequency.feet_wash_count).toFixed(1) : null,
+      bath_freq: itemFrequency.bath_count > 0 ? (totalDays / itemFrequency.bath_count).toFixed(1) : null,
+      exfoliation_freq: itemFrequency.exfoliation_count > 0 ? (totalDays / itemFrequency.exfoliation_count).toFixed(1) : null
+    }
 
     return c.json({
       success: true,
@@ -420,7 +437,7 @@ app.get('/api/stats', async (c) => {
         avg_score: overallStats.avg_score || 0,
         total_count: overallStats.total_count || 0,
         cat_shower_rate: overallStats.cat_shower_rate || 0,
-        itemFrequency: itemFrequency
+        itemFrequency: freq
       }
     })
   } catch (error) {
