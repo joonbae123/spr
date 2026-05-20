@@ -632,8 +632,10 @@ function renderRecords() {
     return
   }
   
+  // Desktop: Table view, Mobile: Card view
   const html = `
-    <div class="overflow-x-auto">
+    <!-- Desktop Table (hidden on mobile) -->
+    <div class="hidden md:block overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -718,6 +720,72 @@ function renderRecords() {
           `).join('')}
         </tbody>
       </table>
+    </div>
+    
+    <!-- Mobile Cards (visible only on mobile) -->
+    <div class="md:hidden space-y-3">
+      ${allRecords.map(record => {
+        const isActualShower = record.body_soap === 1 || record.hair_wash === 1
+        const isDryShampooOnly = record.dry_shampoo === 1 && !isActualShower
+        let statusText, statusColor
+        
+        if (isDryShampooOnly) {
+          statusText = '🧴✨ Dry Shampoo Only'
+          statusColor = 'text-yellow-600'
+        } else if (!isActualShower) {
+          statusText = '🦷🦶 Partial Hygiene'
+          statusColor = 'text-gray-500'
+        } else if (record.is_cat_shower) {
+          statusText = '🐱 Cat Shower'
+          statusColor = 'text-orange-600'
+        } else {
+          statusText = '✓ Normal Shower'
+          statusColor = 'text-green-600'
+        }
+        
+        return `
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <div class="text-sm font-semibold text-gray-900">${record.date}</div>
+                <div class="text-xs text-gray-500">${record.start_time} • ${record.duration}min</div>
+              </div>
+              <span class="px-2 py-1 text-xs font-semibold rounded ${getGradeColor(record.grade)}">
+                ${record.grade}
+              </span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2 mb-3 text-xs">
+              <div class="text-center p-2 bg-gray-50 rounded">
+                <div class="font-semibold text-gray-900">${record.completeness_score}%</div>
+                <div class="text-gray-500">Complete</div>
+              </div>
+              <div class="text-center p-2 bg-gray-50 rounded">
+                <div class="font-semibold ${record.days_since_last <= 2 ? 'text-green-600' : 'text-red-600'}">${record.days_since_last}d</div>
+                <div class="text-gray-500">Since</div>
+              </div>
+              <div class="text-center p-2 bg-gray-50 rounded">
+                <div class="font-semibold text-gray-900">${record.total_score}</div>
+                <div class="text-gray-500">Score</div>
+              </div>
+            </div>
+            
+            <div class="flex items-center justify-between text-xs mb-3">
+              <span class="${statusColor}">${statusText}</span>
+              <span class="text-gray-500">${getChecklistIcons(record)}</span>
+            </div>
+            
+            <div class="flex items-center justify-end space-x-3 pt-3 border-t">
+              <button onclick="editRecord(${record.id})" class="text-blue-600 hover:text-blue-800 text-sm">
+                <i class="fas fa-edit mr-1"></i>Edit
+              </button>
+              <button onclick="deleteRecord(${record.id})" class="text-red-600 hover:text-red-800 text-sm">
+                <i class="fas fa-trash mr-1"></i>Delete
+              </button>
+            </div>
+          </div>
+        `
+      }).join('')}
     </div>
   `
   

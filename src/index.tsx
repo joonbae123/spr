@@ -1408,44 +1408,45 @@ app.get('/', (c) => {
             body { font-family: 'Montserrat', sans-serif; }
         </style>
     </head>
-    <body class="bg-gray-50 min-h-screen flex flex-col pt-32">
+    <body class="bg-gray-50 min-h-screen flex flex-col pt-28 md:pt-32">
         <!-- Header (Fixed) -->
         <div class="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
-            <div class="max-w-7xl mx-auto px-6 py-6">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            <div class="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-lg md:text-3xl font-bold text-gray-800 mb-1 md:mb-2 truncate">
                             Shower Performance Report
                         </h1>
-                        <p class="text-gray-600">
+                        <p class="text-xs md:text-base text-gray-600 hidden sm:block">
                             Individual Shower Habit Reports & Hygiene Tracking
                         </p>
                     </div>
-                    <button onclick="showAddForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 transition-all shadow-sm">
+                    <button onclick="showAddForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-lg flex items-center space-x-1 md:space-x-2 transition-all shadow-sm flex-shrink-0 text-sm md:text-base">
                         <i class="fas fa-plus"></i>
-                        <span>Add Record</span>
+                        <span class="hidden sm:inline">Add Record</span>
+                        <span class="sm:hidden">Add</span>
                     </button>
                 </div>
             </div>
 
             <!-- Tabs (부분적으로 헤더 안에 포함) -->
-            <div class="bg-white border-t">
-                <div class="max-w-7xl mx-auto px-6">
-                    <div class="flex border-b">
-                        <button onclick="showTab('report')" id="tab-report" class="px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500">
-                            <i class="fas fa-chart-line mr-2"></i>Report
+            <div class="bg-white border-t overflow-x-auto">
+                <div class="max-w-7xl mx-auto px-3 md:px-6">
+                    <div class="flex border-b min-w-max">
+                        <button onclick="showTab('report')" id="tab-report" class="px-3 md:px-6 py-2 md:py-3 font-medium text-blue-600 border-b-2 border-blue-500 text-sm md:text-base whitespace-nowrap">
+                            <i class="fas fa-chart-line mr-1 md:mr-2"></i><span class="hidden sm:inline">Report</span><span class="sm:hidden">Rep</span>
                         </button>
-                        <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
-                            <i class="fas fa-trophy mr-2"></i>Scorecard
+                        <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
+                            <i class="fas fa-trophy mr-1 md:mr-2"></i><span class="hidden sm:inline">Scorecard</span><span class="sm:hidden">Score</span>
                         </button>
-                        <button onclick="showTab('calendar')" id="tab-calendar" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
-                            <i class="fas fa-calendar-alt mr-2"></i>Calendar
+                        <button onclick="showTab('calendar')" id="tab-calendar" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
+                            <i class="fas fa-calendar-alt mr-1 md:mr-2"></i><span class="hidden sm:inline">Calendar</span><span class="sm:hidden">Cal</span>
                         </button>
-                        <button onclick="showTab('rewards')" id="tab-rewards" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
-                            <i class="fas fa-gift mr-2"></i>Rewards
+                        <button onclick="showTab('rewards')" id="tab-rewards" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
+                            <i class="fas fa-gift mr-1 md:mr-2"></i><span class="hidden sm:inline">Rewards</span><span class="sm:hidden">Rew</span>
                         </button>
-                        <button onclick="showTab('settings')" id="tab-settings" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
-                            <i class="fas fa-cog mr-2"></i>Settings
+                        <button onclick="showTab('settings')" id="tab-settings" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
+                            <i class="fas fa-cog mr-1 md:mr-2"></i><span class="hidden sm:inline">Settings</span><span class="sm:hidden">Set</span>
                         </button>
                     </div>
                 </div>
@@ -1456,23 +1457,23 @@ app.get('/', (c) => {
         <div class="flex-grow">
 
         <!-- Report 탭 -->
-        <div id="content-report" class="max-w-7xl mx-auto px-4 py-6">
+        <div id="content-report" class="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
             <!-- 현재 위생 상태 카드 -->
-            <div id="hygiene-status-card" class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg shadow-lg p-6 mb-6">
+            <div id="hygiene-status-card" class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
                 <div class="text-center" id="hygiene-status-content">
-                    <div class="text-6xl mb-3">😊</div>
-                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Loading...</h3>
-                    <p class="text-gray-600 mb-3">Checking your hygiene status...</p>
-                    <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
-                        <span class="text-3xl">🦠</span>
-                        <span class="text-sm text-gray-600 ml-2">Bacteria Level: ?</span>
+                    <div class="text-4xl md:text-6xl mb-2 md:mb-3">😊</div>
+                    <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-1 md:mb-2">Loading...</h3>
+                    <p class="text-sm md:text-base text-gray-600 mb-2 md:mb-3">Checking your hygiene status...</p>
+                    <div class="inline-block px-3 md:px-4 py-1.5 md:py-2 bg-white rounded-full shadow-sm">
+                        <span class="text-xl md:text-3xl">🦠</span>
+                        <span class="text-xs md:text-sm text-gray-600 ml-1 md:ml-2">Bacteria Level: ?</span>
                     </div>
                 </div>
             </div>
             
             <!-- Date 필터 섹션 -->
-            <div class="bg-white rounded-lg shadow p-4 mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3">
+            <div class="bg-white rounded-lg shadow p-3 md:p-4 mb-4">
+                <h3 class="text-base md:text-lg font-semibold text-gray-900 mb-3">
                     <i class="fas fa-filter text-blue-600 mr-2"></i>Date Filter
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1523,24 +1524,24 @@ app.get('/', (c) => {
             
             <!-- Shower Records 테이블 -->
             <div class="bg-white rounded-lg shadow">
-                <div class="p-6">
-                    <h2 class="text-xl font-bold text-gray-900 mb-4">Shower Records</h2>
+                <div class="p-3 md:p-6">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-900 mb-4">Shower Records</h2>
                     <div id="records-list"></div>
                 </div>
             </div>
         </div>
 
         <!-- Scorecard 탭 -->
-        <div id="content-scorecard" class="max-w-7xl mx-auto px-4 py-6 hidden">
+        <div id="content-scorecard" class="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6 hidden">
             <!-- 전체 위생 등급 카드 -->
-            <div id="overall-hygiene-card" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-6">
+            <div id="overall-hygiene-card" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
                 <div class="text-center" id="overall-hygiene-content">
-                    <div class="text-6xl mb-3">😊</div>
-                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Overall Hygiene Level</h3>
-                    <p class="text-gray-600 mb-3">Based on your average performance</p>
-                    <div class="inline-block px-4 py-2 bg-white rounded-full shadow-sm">
-                        <span class="text-3xl">🦠🦠🦠</span>
-                        <span class="text-sm text-gray-600 ml-2">Avg Score: ?</span>
+                    <div class="text-4xl md:text-6xl mb-2 md:mb-3">😊</div>
+                    <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-1 md:mb-2">Overall Hygiene Level</h3>
+                    <p class="text-sm md:text-base text-gray-600 mb-2 md:mb-3">Based on your average performance</p>
+                    <div class="inline-block px-3 md:px-4 py-1.5 md:py-2 bg-white rounded-full shadow-sm">
+                        <span class="text-xl md:text-3xl">🦠🦠🦠</span>
+                        <span class="text-xs md:text-sm text-gray-600 ml-1 md:ml-2">Avg Score: ?</span>
                     </div>
                 </div>
             </div>
@@ -1660,15 +1661,15 @@ app.get('/', (c) => {
         </div>
 
         <!-- Settings 탭 -->
-        <div id="content-settings" class="max-w-7xl mx-auto px-4 py-6 hidden">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">
+        <div id="content-settings" class="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6 hidden">
+            <div class="bg-white rounded-lg shadow p-4 md:p-6">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">
                     <i class="fas fa-cog mr-2"></i>Settings
                 </h2>
                 
                 <!-- Timezone Setting -->
-                <div class="mb-6 pb-6 border-b">
-                    <label class="block text-lg font-medium text-gray-900 mb-2">
+                <div class="mb-4 md:mb-6 pb-4 md:pb-6 border-b">
+                    <label class="block text-base md:text-lg font-medium text-gray-900 mb-2">
                         <i class="fas fa-globe-americas mr-2"></i>Timezone
                     </label>
                     <p class="text-sm text-gray-600 mb-3">
@@ -1705,8 +1706,8 @@ app.get('/', (c) => {
                 </div>
 
                 <!-- Date Format Setting -->
-                <div class="mb-6 pb-6 border-b">
-                    <label class="block text-lg font-medium text-gray-900 mb-2">
+                <div class="mb-4 md:mb-6 pb-4 md:pb-6 border-b">
+                    <label class="block text-base md:text-lg font-medium text-gray-900 mb-2">
                         <i class="fas fa-calendar mr-2"></i>Date Format
                     </label>
                     <select id="date-format-select" class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
@@ -1938,24 +1939,24 @@ app.get('/', (c) => {
         </div>
 
         <!-- Rewards 탭 -->
-        <div id="content-rewards" class="max-w-7xl mx-auto px-4 py-6 hidden">
-            <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-6">
+        <div id="content-rewards" class="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6 hidden">
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
                 <div class="text-center">
-                    <div class="text-6xl mb-3">🎁</div>
-                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Rewards & Points</h2>
-                    <p class="text-gray-600">Earn rewards for your hygiene achievements!</p>
+                    <div class="text-4xl md:text-6xl mb-2 md:mb-3">🎁</div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">Rewards & Points</h2>
+                    <p class="text-sm md:text-base text-gray-600">Earn rewards for your hygiene achievements!</p>
                 </div>
             </div>
 
             <!-- Points Summary -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-2xl font-bold text-gray-900">
-                        <i class="fas fa-coins text-yellow-500 mr-2"></i>Your Points
+            <div class="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
+                <div class="flex items-center justify-between mb-4 gap-3">
+                    <h3 class="text-lg md:text-2xl font-bold text-gray-900">
+                        <i class="fas fa-coins text-yellow-500 mr-1 md:mr-2"></i><span class="hidden sm:inline">Your Points</span><span class="sm:hidden">Points</span>
                     </h3>
                     <div class="text-right">
-                        <div class="text-4xl font-bold text-purple-600" id="total-points">0</div>
-                        <div class="text-sm text-gray-500">Lifetime: <span id="lifetime-points">0</span> pts</div>
+                        <div class="text-2xl md:text-4xl font-bold text-purple-600" id="total-points">0</div>
+                        <div class="text-xs md:text-sm text-gray-500">Lifetime: <span id="lifetime-points">0</span> pts</div>
                     </div>
                 </div>
                 <button onclick="showPointShop()" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 rounded-lg font-semibold">
@@ -1964,8 +1965,8 @@ app.get('/', (c) => {
             </div>
 
             <!-- Active Goals -->
-            <div class="bg-white rounded-lg shadow p-6 mb-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">
+            <div class="bg-white rounded-lg shadow p-4 md:p-6 mb-4 md:mb-6">
+                <h3 class="text-lg md:text-xl font-bold text-gray-900 mb-4">
                     <i class="fas fa-bullseye text-blue-600 mr-2"></i>Active Goals
                 </h3>
                 <div id="active-goals-container">
@@ -1974,10 +1975,10 @@ app.get('/', (c) => {
             </div>
 
             <!-- Pending Rewards -->
-            <div class="bg-white rounded-lg shadow p-6 mb-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">
+            <div class="bg-white rounded-lg shadow p-4 md:p-6 mb-4 md:mb-6">
+                <h3 class="text-lg md:text-xl font-bold text-gray-900 mb-4">
                     <i class="fas fa-gift text-green-600 mr-2"></i>Pending Rewards
-                    <span id="pending-count" class="ml-2 px-3 py-1 bg-red-500 text-white text-sm rounded-full">0</span>
+                    <span id="pending-count" class="ml-2 px-2 md:px-3 py-0.5 md:py-1 bg-red-500 text-white text-xs md:text-sm rounded-full">0</span>
                 </h3>
                 <div id="pending-rewards-container">
                     <p class="text-gray-500">No pending rewards yet. Keep showering!</p>
@@ -1986,8 +1987,8 @@ app.get('/', (c) => {
         </div>
 
         <!-- Add Record Modal -->
-        <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg p-4 md:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
                 <h3 class="text-xl font-bold text-gray-900 mb-4">Add Record</h3>
                 <form id="add-form" class="space-y-4">
                     <div>
