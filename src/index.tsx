@@ -1433,20 +1433,20 @@ app.get('/', (c) => {
             <div class="bg-white border-t overflow-x-auto">
                 <div class="max-w-7xl mx-auto px-3 md:px-6">
                     <div class="flex border-b min-w-max">
-                        <button onclick="showTab('report')" id="tab-report" class="px-3 md:px-6 py-2 md:py-3 font-medium text-blue-600 border-b-2 border-blue-500 text-sm md:text-base whitespace-nowrap">
-                            <i class="fas fa-chart-line mr-1 md:mr-2"></i><span class="hidden sm:inline">Report</span><span class="sm:hidden">Rep</span>
+                        <button onclick="showTab('report')" id="tab-report" class="px-3 py-2 font-medium text-blue-600 border-b-2 border-blue-500 text-sm whitespace-nowrap">
+                            <i class="fas fa-chart-line mr-1"></i><span class="hidden sm:inline">Report</span><span class="sm:hidden">Rep</span>
                         </button>
-                        <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
-                            <i class="fas fa-trophy mr-1 md:mr-2"></i><span class="hidden sm:inline">Scorecard</span><span class="sm:hidden">Score</span>
+                        <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
+                            <i class="fas fa-trophy mr-1"></i><span class="hidden sm:inline">Scorecard</span><span class="sm:hidden">Score</span>
                         </button>
-                        <button onclick="showTab('calendar')" id="tab-calendar" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
-                            <i class="fas fa-calendar-alt mr-1 md:mr-2"></i><span class="hidden sm:inline">Calendar</span><span class="sm:hidden">Cal</span>
+                        <button onclick="showTab('calendar')" id="tab-calendar" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
+                            <i class="fas fa-calendar-alt mr-1"></i><span class="hidden sm:inline">Calendar</span><span class="sm:hidden">Cal</span>
                         </button>
-                        <button onclick="showTab('rewards')" id="tab-rewards" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
-                            <i class="fas fa-gift mr-1 md:mr-2"></i><span class="hidden sm:inline">Rewards</span><span class="sm:hidden">Rew</span>
+                        <button onclick="showTab('rewards')" id="tab-rewards" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
+                            <i class="fas fa-gift mr-1"></i><span class="hidden sm:inline">Rewards</span><span class="sm:hidden">Rew</span>
                         </button>
-                        <button onclick="showTab('settings')" id="tab-settings" class="px-3 md:px-6 py-2 md:py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm md:text-base whitespace-nowrap">
-                            <i class="fas fa-cog mr-1 md:mr-2"></i><span class="hidden sm:inline">Settings</span><span class="sm:hidden">Set</span>
+                        <button onclick="showTab('settings')" id="tab-settings" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
+                            <i class="fas fa-cog mr-1"></i><span class="hidden sm:inline">Settings</span><span class="sm:hidden">Set</span>
                         </button>
                     </div>
                 </div>
@@ -1512,6 +1512,29 @@ app.get('/', (c) => {
                     </button>
                     <button onclick="quickFilter('all')" class="px-3 py-1 text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full">
                         <i class="fas fa-list mr-1"></i>All
+                    </button>
+                </div>
+                
+                <!-- Grade Filter Buttons -->
+                <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t">
+                    <span class="text-xs font-medium text-gray-500 self-center mr-2">Filter by Grade:</span>
+                    <button onclick="filterByGrade('S')" id="grade-filter-S" class="px-3 py-1 text-sm bg-gradient-to-r from-yellow-50 to-amber-50 hover:from-yellow-100 hover:to-amber-100 text-yellow-700 rounded-full border border-yellow-200">
+                        S
+                    </button>
+                    <button onclick="filterByGrade('A')" id="grade-filter-A" class="px-3 py-1 text-sm bg-green-50 hover:bg-green-100 text-green-700 rounded-full border border-green-200">
+                        A
+                    </button>
+                    <button onclick="filterByGrade('B')" id="grade-filter-B" class="px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full border border-blue-200">
+                        B
+                    </button>
+                    <button onclick="filterByGrade('C')" id="grade-filter-C" class="px-3 py-1 text-sm bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-full border border-yellow-200">
+                        C
+                    </button>
+                    <button onclick="filterByGrade('D')" id="grade-filter-D" class="px-3 py-1 text-sm bg-red-50 hover:bg-red-100 text-red-700 rounded-full border border-red-200">
+                        D
+                    </button>
+                    <button onclick="clearGradeFilter()" id="grade-filter-clear" class="px-3 py-1 text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full border border-gray-200 hidden">
+                        <i class="fas fa-times mr-1"></i>Clear
                     </button>
                 </div>
                 

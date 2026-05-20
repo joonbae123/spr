@@ -105,7 +105,8 @@ let allStats = {}
 let allBadges = []
 let currentFilters = {
   startDate: null,
-  endDate: null
+  endDate: null,
+  grade: null  // Grade 필터 추가
 }
 
 // ============================================
@@ -562,6 +563,57 @@ function quickFilter(type) {
 }
 
 // ============================================
+// Grade 필터 함수
+// ============================================
+function filterByGrade(grade) {
+  currentFilters.grade = grade
+  
+  // 모든 Grade 버튼 스타일 초기화
+  const grades = ['S', 'A', 'B', 'C', 'D']
+  grades.forEach(g => {
+    const btn = document.getElementById(`grade-filter-${g}`)
+    btn.classList.remove('ring-2', 'ring-offset-2')
+  })
+  
+  // 선택된 Grade 버튼 강조
+  const selectedBtn = document.getElementById(`grade-filter-${grade}`)
+  if (grade === 'S') {
+    selectedBtn.classList.add('ring-2', 'ring-yellow-400', 'ring-offset-2')
+  } else if (grade === 'A') {
+    selectedBtn.classList.add('ring-2', 'ring-green-400', 'ring-offset-2')
+  } else if (grade === 'B') {
+    selectedBtn.classList.add('ring-2', 'ring-blue-400', 'ring-offset-2')
+  } else if (grade === 'C') {
+    selectedBtn.classList.add('ring-2', 'ring-yellow-400', 'ring-offset-2')
+  } else if (grade === 'D') {
+    selectedBtn.classList.add('ring-2', 'ring-red-400', 'ring-offset-2')
+  }
+  
+  // Clear 버튼 표시
+  document.getElementById('grade-filter-clear').classList.remove('hidden')
+  
+  // 레코드 필터링
+  renderRecords()
+}
+
+function clearGradeFilter() {
+  currentFilters.grade = null
+  
+  // 모든 Grade 버튼 스타일 초기화
+  const grades = ['S', 'A', 'B', 'C', 'D']
+  grades.forEach(g => {
+    const btn = document.getElementById(`grade-filter-${g}`)
+    btn.classList.remove('ring-2', 'ring-offset-2')
+  })
+  
+  // Clear 버튼 숨김
+  document.getElementById('grade-filter-clear').classList.add('hidden')
+  
+  // 레코드 다시 렌더링
+  renderRecords()
+}
+
+// ============================================
 // 필터 결과 표시
 // ============================================
 function showFilterResult(filters) {
@@ -632,6 +684,17 @@ function renderRecords() {
     return
   }
   
+  // Grade 필터 적용
+  let displayRecords = allRecords
+  if (currentFilters.grade) {
+    displayRecords = allRecords.filter(r => r.grade === currentFilters.grade)
+  }
+  
+  if (displayRecords.length === 0) {
+    container.innerHTML = `<p class="text-gray-500 text-center py-8">No records found with grade ${currentFilters.grade}.</p>`
+    return
+  }
+  
   // Desktop: Table view, Mobile: Card view
   const html = `
     <!-- Desktop Table (hidden on mobile) -->
@@ -666,7 +729,7 @@ function renderRecords() {
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          ${allRecords.map(record => `
+          ${displayRecords.map(record => `
             <tr class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.date}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.start_time}</td>
@@ -724,7 +787,7 @@ function renderRecords() {
     
     <!-- Mobile Cards (visible only on mobile) -->
     <div class="md:hidden space-y-3">
-      ${allRecords.map(record => {
+      ${displayRecords.map(record => {
         const isActualShower = record.body_soap === 1 || record.hair_wash === 1
         const isDryShampooOnly = record.dry_shampoo === 1 && !isActualShower
         let statusText, statusColor
@@ -821,7 +884,7 @@ function renderGradeCards() {
     }
     
     return `
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 ${getGradeBorderColor(grade)}">
+      <div onclick="showGradeRecords('${grade}')" class="bg-white rounded-lg shadow p-4 border-l-4 ${getGradeBorderColor(grade)} cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1">
         <div class="flex items-center justify-between mb-2">
           <span class="text-3xl font-bold ${getGradeTextColor(grade)}">${grade}</span>
           <span class="text-2xl font-bold text-gray-900">${gradeData.count}</span>
@@ -830,11 +893,129 @@ function renderGradeCards() {
           <div>Avg: ${gradeData.avg_score}pts</div>
           <div>Completeness: ${gradeData.avg_completeness}%</div>
         </div>
+        <div class="text-xs text-gray-400 mt-2">
+          <i class="fas fa-mouse-pointer mr-1"></i>Click to view records
+        </div>
       </div>
     `
   }).join('')
   
   container.innerHTML = html
+}
+
+// ============================================
+// Grade 레코드 표시 (Scorecard에서 등급 클릭 시)
+// ============================================
+function showGradeRecords(grade) {
+  const gradeRecords = allRecords.filter(r => r.grade === grade)
+  
+  if (gradeRecords.length === 0) {
+    alert(`No records with grade ${grade}`)
+    return
+  }
+  
+  // 모달 생성
+  const modal = document.createElement('div')
+  modal.id = 'grade-records-modal'
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.remove()
+    }
+  }
+  
+  const modalContent = `
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white border-b px-4 md:px-6 py-4 flex items-center justify-between">
+        <h3 class="text-lg md:text-xl font-bold text-gray-900">
+          <span class="px-2 py-1 rounded ${getGradeColor(grade)} mr-2">${grade}</span>
+          Grade Records (${gradeRecords.length})
+        </h3>
+        <button onclick="document.getElementById('grade-records-modal').remove()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div class="p-4 md:p-6">
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Completeness</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              ${gradeRecords.map(record => `
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${record.date}</td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.start_time}</td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.duration}min</td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm">
+                    <span class="text-gray-900">${record.completeness_score}%</span>
+                    <span class="ml-2 text-xs">${getChecklistIcons(record)}</span>
+                  </td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${record.total_score}pts</td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm">${getRecordStatus(record)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Mobile Cards -->
+        <div class="md:hidden space-y-3">
+          ${gradeRecords.map(record => `
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-semibold text-gray-900">${record.date}</div>
+                <div class="text-xs text-gray-500">${record.start_time}</div>
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-xs">
+                <div class="text-center">
+                  <div class="font-semibold text-gray-900">${record.completeness_score}%</div>
+                  <div class="text-gray-500">Complete</div>
+                </div>
+                <div class="text-center">
+                  <div class="font-semibold text-gray-900">${record.duration}min</div>
+                  <div class="text-gray-500">Duration</div>
+                </div>
+                <div class="text-center">
+                  <div class="font-semibold text-gray-900">${record.total_score}</div>
+                  <div class="text-gray-500">Score</div>
+                </div>
+              </div>
+              <div class="mt-2 text-xs">${getRecordStatus(record)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `
+  
+  modal.innerHTML = modalContent
+  document.body.appendChild(modal)
+}
+
+// 레코드 상태 텍스트 반환
+function getRecordStatus(record) {
+  const isActualShower = record.body_soap === 1 || record.hair_wash === 1
+  const isDryShampooOnly = record.dry_shampoo === 1 && !isActualShower
+  
+  if (isDryShampooOnly) {
+    return '<span class="text-yellow-600">🧴✨ Dry Shampoo Only</span>'
+  } else if (!isActualShower) {
+    return '<span class="text-gray-500">🦷🦶 Partial Hygiene</span>'
+  } else if (record.is_cat_shower) {
+    return '<span class="text-orange-600">🐱 Cat Shower</span>'
+  } else {
+    return '<span class="text-green-600">✓ Normal Shower</span>'
+  }
 }
 
 // ============================================
