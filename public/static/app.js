@@ -2052,7 +2052,8 @@ function renderCalendar() {
     const dayRecords = recordsByDate[dateStr] || []
     
     const dayCell = document.createElement('div')
-    dayCell.className = 'relative h-24 rounded-xl border cursor-pointer transition-all duration-200'
+    // Use aspect-square for responsive square cells
+    dayCell.className = 'relative aspect-square rounded-lg md:rounded-xl border cursor-pointer transition-all duration-200'
     
     if (dayRecords.length > 0) {
       // Get best grade for the day
@@ -2063,24 +2064,24 @@ function renderCalendar() {
       // Minimal, modern colors - subtle accent on left border
       let accentColor, gradeColor
       if (bestRecord.total_score >= 80) {
-        accentColor = 'border-l-4 border-l-green-500'
+        accentColor = 'border-l-2 md:border-l-4 border-l-green-500'
         gradeColor = 'text-gray-900'
       } else if (bestRecord.total_score >= 60) {
-        accentColor = 'border-l-4 border-l-yellow-500'
+        accentColor = 'border-l-2 md:border-l-4 border-l-yellow-500'
         gradeColor = 'text-gray-900'
       } else {
-        accentColor = 'border-l-4 border-l-red-500'
+        accentColor = 'border-l-2 md:border-l-4 border-l-red-500'
         gradeColor = 'text-gray-900'
       }
       
       dayCell.className += ` bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg hover:-translate-y-0.5 ${accentColor}`
       dayCell.innerHTML = `
-        <div class="absolute top-2 left-3 text-xs font-medium text-gray-400">${day}</div>
-        ${dayRecords.length > 1 ? `<div class="absolute top-2 right-3 text-xs font-medium text-gray-400">+${dayRecords.length - 1}</div>` : ''}
+        <div class="absolute top-1 left-1.5 md:top-2 md:left-3 text-[10px] md:text-xs font-medium text-gray-400">${day}</div>
+        ${dayRecords.length > 1 ? `<div class="absolute top-1 right-1.5 md:top-2 md:right-3 text-[10px] md:text-xs font-medium text-gray-400">+${dayRecords.length - 1}</div>` : ''}
         <div class="flex items-center justify-center h-full">
           <div class="text-center">
-            <div class="text-3xl font-bold ${gradeColor} tracking-tight">${bestRecord.grade}</div>
-            <div class="text-xs font-medium text-gray-500 mt-0.5">${bestRecord.total_score}</div>
+            <div class="text-xl md:text-3xl font-bold ${gradeColor} tracking-tight">${bestRecord.grade}</div>
+            <div class="text-[10px] md:text-xs font-medium text-gray-500 mt-0.5">${bestRecord.total_score}</div>
           </div>
         </div>
       `
@@ -2090,9 +2091,9 @@ function renderCalendar() {
       // No record - even more minimal
       dayCell.className += ' bg-white border-gray-100 hover:bg-gray-50'
       dayCell.innerHTML = `
-        <div class="absolute top-2 left-3 text-xs font-medium text-gray-300">${day}</div>
+        <div class="absolute top-1 left-1.5 md:top-2 md:left-3 text-[10px] md:text-xs font-medium text-gray-300">${day}</div>
         <div class="flex items-center justify-center h-full">
-          <div class="text-gray-200">—</div>
+          <div class="text-sm md:text-base text-gray-200">—</div>
         </div>
       `
     }

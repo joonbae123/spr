@@ -1582,55 +1582,55 @@ app.get('/', (c) => {
         </div>
 
         <!-- Calendar 탭 -->
-        <div id="content-calendar" class="max-w-7xl mx-auto px-4 py-6 hidden">
+        <div id="content-calendar" class="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6 hidden">
             <!-- Monthly Stats Summary -->
-            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-6 mb-6">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="calendar-stats">
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" id="calendar-stats">
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-blue-600" id="cal-total-showers">0</div>
-                        <div class="text-sm text-gray-600">Showers</div>
+                        <div class="text-2xl md:text-3xl font-bold text-blue-600" id="cal-total-showers">0</div>
+                        <div class="text-xs md:text-sm text-gray-600">Showers</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-green-600" id="cal-avg-score">0</div>
-                        <div class="text-sm text-gray-600">Avg Score</div>
+                        <div class="text-2xl md:text-3xl font-bold text-green-600" id="cal-avg-score">0</div>
+                        <div class="text-xs md:text-sm text-gray-600">Avg Score</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-purple-600" id="cal-streak">0</div>
-                        <div class="text-sm text-gray-600">Days Streak</div>
+                        <div class="text-2xl md:text-3xl font-bold text-purple-600" id="cal-streak">0</div>
+                        <div class="text-xs md:text-sm text-gray-600">Days Streak</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-orange-600" id="cal-best-grade">-</div>
-                        <div class="text-sm text-gray-600">Best Grade</div>
+                        <div class="text-2xl md:text-3xl font-bold text-orange-600" id="cal-best-grade">-</div>
+                        <div class="text-xs md:text-sm text-gray-600">Best Grade</div>
                     </div>
                 </div>
             </div>
 
             <!-- Calendar Navigation -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <button onclick="prevMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
-                        <i class="fas fa-chevron-left text-2xl text-gray-600"></i>
+            <div class="bg-white rounded-lg shadow-lg p-3 md:p-6">
+                <div class="flex items-center justify-between mb-4 md:mb-6">
+                    <button onclick="prevMonth()" class="p-1.5 md:p-2 hover:bg-gray-100 rounded-lg transition">
+                        <i class="fas fa-chevron-left text-lg md:text-2xl text-gray-600"></i>
                     </button>
-                    <h2 class="text-2xl font-bold text-gray-800" id="calendar-month-year">
+                    <h2 class="text-lg md:text-2xl font-bold text-gray-800" id="calendar-month-year">
                         Loading...
                     </h2>
-                    <button onclick="nextMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
-                        <i class="fas fa-chevron-right text-2xl text-gray-600"></i>
+                    <button onclick="nextMonth()" class="p-1.5 md:p-2 hover:bg-gray-100 rounded-lg transition">
+                        <i class="fas fa-chevron-right text-lg md:text-2xl text-gray-600"></i>
                     </button>
                 </div>
 
                 <!-- Calendar Grid -->
                 <div class="mb-4">
-                    <div class="grid grid-cols-7 gap-2 mb-2">
-                        <div class="text-center font-semibold text-gray-600 py-2">Sun</div>
-                        <div class="text-center font-semibold text-gray-600 py-2">Mon</div>
-                        <div class="text-center font-semibold text-gray-600 py-2">Tue</div>
-                        <div class="text-center font-semibold text-gray-600 py-2">Wed</div>
-                        <div class="text-center font-semibold text-gray-600 py-2">Thu</div>
-                        <div class="text-center font-semibold text-gray-600 py-2">Fri</div>
-                        <div class="text-center font-semibold text-gray-600 py-2">Sat</div>
+                    <div class="grid grid-cols-7 gap-1 md:gap-2 mb-2">
+                        <div class="text-center text-xs md:text-sm font-semibold text-gray-600 py-1 md:py-2">Sun</div>
+                        <div class="text-center text-xs md:text-sm font-semibold text-gray-600 py-1 md:py-2">Mon</div>
+                        <div class="text-center text-xs md:text-sm font-semibold text-gray-600 py-1 md:py-2">Tue</div>
+                        <div class="text-center text-xs md:text-sm font-semibold text-gray-600 py-1 md:py-2">Wed</div>
+                        <div class="text-center text-xs md:text-sm font-semibold text-gray-600 py-1 md:py-2">Thu</div>
+                        <div class="text-center text-xs md:text-sm font-semibold text-gray-600 py-1 md:py-2">Fri</div>
+                        <div class="text-center text-xs md:text-sm font-semibold text-gray-600 py-1 md:py-2">Sat</div>
                     </div>
-                    <div id="calendar-days" class="grid grid-cols-7 gap-2">
+                    <div id="calendar-days" class="grid grid-cols-7 gap-1 md:gap-2">
                         <!-- Days will be inserted here by JavaScript -->
                     </div>
                 </div>
