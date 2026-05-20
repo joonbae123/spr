@@ -189,11 +189,42 @@ app.delete('/api/records/:id', async (c) => {
   const id = c.req.param('id')
 
   try {
+    // 1. 삭제 전에 해당 레코드의 점수를 조회
+    const record = await DB.prepare(`
+      SELECT total_score FROM shower_records WHERE id = ?
+    `).bind(id).first()
+
+    if (!record) {
+      return c.json({
+        success: false,
+        error: 'Record not found'
+      }, 404)
+    }
+
+    // 2. 삭제할 레코드의 포인트 계산
+    const pointsToDeduct = calculatePoints(record.total_score)
+
+    // 3. 레코드 삭제
     await DB.prepare(`DELETE FROM shower_records WHERE id = ?`).bind(id).run()
+
+    // 4. 포인트 차감 (total_points만 차감, lifetime_points는 유지)
+    await DB.prepare(`
+      UPDATE user_points 
+      SET total_points = MAX(0, total_points - ?),
+          last_updated = CURRENT_TIMESTAMP
+      WHERE id = 1
+    `).bind(pointsToDeduct).run()
+
+    // 5. 포인트 거래 기록 추가 (음수로 기록)
+    await DB.prepare(`
+      INSERT INTO point_transactions (user_id, points, reason, reference_type, reference_id, created_at)
+      VALUES (1, ?, 'Record deleted', 'record_delete', ?, CURRENT_TIMESTAMP)
+    `).bind(-pointsToDeduct, id).run()
 
     return c.json({
       success: true,
-      message: 'Record deleted successfully'
+      message: 'Record deleted successfully',
+      points_deducted: pointsToDeduct
     })
   } catch (error) {
     console.error('Error deleting record:', error)
@@ -1431,7 +1462,7 @@ app.get('/', (c) => {
 
             <!-- Tabs (부분적으로 헤더 안에 포함) -->
             <div class="bg-white border-t overflow-x-auto">
-                <div class="max-w-7xl mx-auto px-3 md:px-6">
+                <div class="max-w-7xl mx-auto px-3">
                     <div class="flex border-b min-w-max">
                         <button onclick="showTab('report')" id="tab-report" class="px-3 py-2 font-medium text-blue-600 border-b-2 border-blue-500 text-sm whitespace-nowrap">
                             <i class="fas fa-chart-line mr-1"></i>Rep
