@@ -2052,7 +2052,7 @@ function renderCalendar() {
     const dayRecords = recordsByDate[dateStr] || []
     
     const dayCell = document.createElement('div')
-    dayCell.className = 'aspect-square p-2 rounded-lg border-2 cursor-pointer transition hover:shadow-lg'
+    dayCell.className = 'relative h-20 rounded-lg border-2 cursor-pointer transition-all duration-200'
     
     if (dayRecords.length > 0) {
       // Get best grade for the day
@@ -2060,40 +2060,45 @@ function renderCalendar() {
         r.total_score > best.total_score ? r : best
       )
       
-      // Color based on score
-      let bgColor, borderColor, textColor
+      // Color based on score - VIBRANT colors
+      let bgColor, borderColor, textColor, hoverShadow
       if (bestRecord.total_score >= 80) {
-        bgColor = 'bg-green-100'
-        borderColor = 'border-green-500'
-        textColor = 'text-green-800'
+        bgColor = 'bg-gradient-to-br from-green-400 to-green-600'
+        borderColor = 'border-green-600'
+        textColor = 'text-white'
+        hoverShadow = 'hover:shadow-green-500/50'
       } else if (bestRecord.total_score >= 60) {
-        bgColor = 'bg-yellow-100'
-        borderColor = 'border-yellow-500'
-        textColor = 'text-yellow-800'
+        bgColor = 'bg-gradient-to-br from-yellow-400 to-yellow-600'
+        borderColor = 'border-yellow-600'
+        textColor = 'text-white'
+        hoverShadow = 'hover:shadow-yellow-500/50'
       } else {
-        bgColor = 'bg-red-100'
-        borderColor = 'border-red-500'
-        textColor = 'text-red-800'
+        bgColor = 'bg-gradient-to-br from-red-400 to-red-600'
+        borderColor = 'border-red-600'
+        textColor = 'text-white'
+        hoverShadow = 'hover:shadow-red-500/50'
       }
       
-      dayCell.className += ` ${bgColor} ${borderColor}`
+      dayCell.className += ` ${bgColor} ${borderColor} hover:shadow-xl hover:scale-105 ${hoverShadow}`
       dayCell.innerHTML = `
-        <div class="text-sm font-semibold text-gray-700">${day}</div>
-        <div class="text-center mt-1">
-          <div class="text-2xl font-bold ${textColor}">${bestRecord.grade}</div>
-          <div class="text-xs text-gray-600">${bestRecord.total_score}</div>
-          ${dayRecords.length > 1 ? `<div class="text-xs text-gray-500">+${dayRecords.length - 1}</div>` : ''}
+        <div class="absolute top-1 left-2 text-xs font-bold text-white opacity-80">${day}</div>
+        ${dayRecords.length > 1 ? `<div class="absolute top-1 right-2 text-xs font-bold text-white bg-black bg-opacity-30 rounded-full px-1.5">+${dayRecords.length - 1}</div>` : ''}
+        <div class="flex items-center justify-center h-full">
+          <div class="text-center">
+            <div class="text-4xl font-black ${textColor} drop-shadow-lg">${bestRecord.grade}</div>
+            <div class="text-sm font-semibold text-white opacity-90">${bestRecord.total_score}</div>
+          </div>
         </div>
       `
       
       dayCell.onclick = () => showDayDetails(dateStr, dayRecords)
     } else {
-      // No record
-      dayCell.className += ' bg-gray-50 border-gray-300'
+      // No record - subtle gray
+      dayCell.className += ' bg-gray-100 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
       dayCell.innerHTML = `
-        <div class="text-sm font-semibold text-gray-400">${day}</div>
-        <div class="text-center mt-1">
-          <div class="text-gray-400 text-sm">-</div>
+        <div class="absolute top-1 left-2 text-xs font-bold text-gray-400">${day}</div>
+        <div class="flex items-center justify-center h-full">
+          <div class="text-2xl text-gray-300">•</div>
         </div>
       `
     }
