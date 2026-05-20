@@ -1434,19 +1434,19 @@ app.get('/', (c) => {
                 <div class="max-w-7xl mx-auto px-3 md:px-6">
                     <div class="flex border-b min-w-max">
                         <button onclick="showTab('report')" id="tab-report" class="px-3 py-2 font-medium text-blue-600 border-b-2 border-blue-500 text-sm whitespace-nowrap">
-                            <i class="fas fa-chart-line mr-1"></i><span class="hidden sm:inline">Report</span><span class="sm:hidden">Rep</span>
+                            <i class="fas fa-chart-line mr-1"></i>Rep
                         </button>
                         <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
-                            <i class="fas fa-trophy mr-1"></i><span class="hidden sm:inline">Scorecard</span><span class="sm:hidden">Score</span>
+                            <i class="fas fa-trophy mr-1"></i>Score
                         </button>
                         <button onclick="showTab('calendar')" id="tab-calendar" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
-                            <i class="fas fa-calendar-alt mr-1"></i><span class="hidden sm:inline">Calendar</span><span class="sm:hidden">Cal</span>
+                            <i class="fas fa-calendar-alt mr-1"></i>Cal
                         </button>
                         <button onclick="showTab('rewards')" id="tab-rewards" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
-                            <i class="fas fa-gift mr-1"></i><span class="hidden sm:inline">Rewards</span><span class="sm:hidden">Rew</span>
+                            <i class="fas fa-gift mr-1"></i>Rew
                         </button>
                         <button onclick="showTab('settings')" id="tab-settings" class="px-3 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800 text-sm whitespace-nowrap">
-                            <i class="fas fa-cog mr-1"></i><span class="hidden sm:inline">Settings</span><span class="sm:hidden">Set</span>
+                            <i class="fas fa-cog mr-1"></i>Set
                         </button>
                     </div>
                 </div>
