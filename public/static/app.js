@@ -1428,12 +1428,14 @@ function showTab(tabName) {
   // 모든 탭 숨기기
   document.getElementById('content-report').classList.add('hidden')
   document.getElementById('content-scorecard').classList.add('hidden')
+  document.getElementById('content-calendar').classList.add('hidden')
   document.getElementById('content-rewards').classList.add('hidden')
   document.getElementById('content-settings').classList.add('hidden')
   
   // 모든 탭 버튼 비활성화
   document.getElementById('tab-report').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
   document.getElementById('tab-scorecard').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
+  document.getElementById('tab-calendar').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
   document.getElementById('tab-rewards').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
   document.getElementById('tab-settings').className = 'px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800'
   
@@ -1445,6 +1447,10 @@ function showTab(tabName) {
     document.getElementById('content-scorecard').classList.remove('hidden')
     document.getElementById('tab-scorecard').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
     renderScorecard()
+  } else if (tabName === 'calendar') {
+    document.getElementById('content-calendar').classList.remove('hidden')
+    document.getElementById('tab-calendar').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
+    renderCalendar()
   } else if (tabName === 'rewards') {
     document.getElementById('content-rewards').classList.remove('hidden')
     document.getElementById('tab-rewards').className = 'px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-500'
@@ -1974,4 +1980,232 @@ async function redeemToken(tokenName, pointsCost) {
     console.error('Error redeeming token:', error)
     alert('❌ Error redeeming token. Please try again.')
   }
+}
+
+// ============================================
+// Calendar View Functions
+// ============================================
+
+let currentCalendarYear = new Date().getFullYear()
+let currentCalendarMonth = new Date().getMonth() // 0-11
+
+function prevMonth() {
+  currentCalendarMonth--
+  if (currentCalendarMonth < 0) {
+    currentCalendarMonth = 11
+    currentCalendarYear--
+  }
+  renderCalendar()
+}
+
+function nextMonth() {
+  currentCalendarMonth++
+  if (currentCalendarMonth > 11) {
+    currentCalendarMonth = 0
+    currentCalendarYear++
+  }
+  renderCalendar()
+}
+
+function renderCalendar() {
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December']
+  
+  // Update month/year display
+  document.getElementById('calendar-month-year').textContent = 
+    `${monthNames[currentCalendarMonth]} ${currentCalendarYear}`
+  
+  // Get first day of month and number of days
+  const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1).getDay()
+  const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate()
+  
+  // Filter records for current month
+  const monthRecords = allRecords.filter(r => {
+    const recordDate = new Date(r.date)
+    return recordDate.getFullYear() === currentCalendarYear && 
+           recordDate.getMonth() === currentCalendarMonth
+  })
+  
+  // Group records by date
+  const recordsByDate = {}
+  monthRecords.forEach(r => {
+    if (!recordsByDate[r.date]) {
+      recordsByDate[r.date] = []
+    }
+    recordsByDate[r.date].push(r)
+  })
+  
+  // Generate calendar days
+  const calendarDays = document.getElementById('calendar-days')
+  calendarDays.innerHTML = ''
+  
+  // Add empty cells for days before month starts
+  for (let i = 0; i < firstDay; i++) {
+    const emptyCell = document.createElement('div')
+    emptyCell.className = 'aspect-square'
+    calendarDays.appendChild(emptyCell)
+  }
+  
+  // Add days of month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dayRecords = recordsByDate[dateStr] || []
+    
+    const dayCell = document.createElement('div')
+    dayCell.className = 'aspect-square p-2 rounded-lg border-2 cursor-pointer transition hover:shadow-lg'
+    
+    if (dayRecords.length > 0) {
+      // Get best grade for the day
+      const bestRecord = dayRecords.reduce((best, r) => 
+        r.total_score > best.total_score ? r : best
+      )
+      
+      // Color based on score
+      let bgColor, borderColor, textColor
+      if (bestRecord.total_score >= 80) {
+        bgColor = 'bg-green-100'
+        borderColor = 'border-green-500'
+        textColor = 'text-green-800'
+      } else if (bestRecord.total_score >= 60) {
+        bgColor = 'bg-yellow-100'
+        borderColor = 'border-yellow-500'
+        textColor = 'text-yellow-800'
+      } else {
+        bgColor = 'bg-red-100'
+        borderColor = 'border-red-500'
+        textColor = 'text-red-800'
+      }
+      
+      dayCell.className += ` ${bgColor} ${borderColor}`
+      dayCell.innerHTML = `
+        <div class="text-sm font-semibold text-gray-700">${day}</div>
+        <div class="text-center mt-1">
+          <div class="text-2xl font-bold ${textColor}">${bestRecord.grade}</div>
+          <div class="text-xs text-gray-600">${bestRecord.total_score}</div>
+          ${dayRecords.length > 1 ? `<div class="text-xs text-gray-500">+${dayRecords.length - 1}</div>` : ''}
+        </div>
+      `
+      
+      dayCell.onclick = () => showDayDetails(dateStr, dayRecords)
+    } else {
+      // No record
+      dayCell.className += ' bg-gray-50 border-gray-300'
+      dayCell.innerHTML = `
+        <div class="text-sm font-semibold text-gray-400">${day}</div>
+        <div class="text-center mt-1">
+          <div class="text-gray-400 text-sm">-</div>
+        </div>
+      `
+    }
+    
+    calendarDays.appendChild(dayCell)
+  }
+  
+  // Update monthly stats
+  updateCalendarStats(monthRecords)
+}
+
+function updateCalendarStats(records) {
+  const totalShowers = records.length
+  const avgScore = records.length > 0 
+    ? (records.reduce((sum, r) => sum + r.total_score, 0) / records.length).toFixed(1)
+    : 0
+  
+  const bestGrade = records.length > 0
+    ? records.reduce((best, r) => {
+        const gradeOrder = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1 }
+        return (gradeOrder[r.grade] > gradeOrder[best]) ? r.grade : best
+      }, 'D')
+    : '-'
+  
+  // Calculate streak (consecutive days with records)
+  const dates = [...new Set(records.map(r => r.date))].sort()
+  let streak = 0
+  let currentStreak = 0
+  
+  for (let i = 0; i < dates.length; i++) {
+    if (i === 0) {
+      currentStreak = 1
+    } else {
+      const prevDate = new Date(dates[i - 1])
+      const currDate = new Date(dates[i])
+      const dayDiff = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24))
+      
+      if (dayDiff === 1) {
+        currentStreak++
+      } else {
+        currentStreak = 1
+      }
+    }
+    streak = Math.max(streak, currentStreak)
+  }
+  
+  document.getElementById('cal-total-showers').textContent = totalShowers
+  document.getElementById('cal-avg-score').textContent = avgScore
+  document.getElementById('cal-streak').textContent = streak
+  document.getElementById('cal-best-grade').textContent = bestGrade
+}
+
+function showDayDetails(date, records) {
+  const modal = document.createElement('div')
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex justify-between items-start mb-4">
+        <h3 class="text-2xl font-bold text-gray-900">
+          📅 ${date}
+        </h3>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        ${records.map((record, idx) => `
+          <div class="border rounded-lg p-4 ${
+            record.total_score >= 80 ? 'bg-green-50 border-green-300' :
+            record.total_score >= 60 ? 'bg-yellow-50 border-yellow-300' :
+            'bg-red-50 border-red-300'
+          }">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-sm text-gray-600">Record ${idx + 1}</span>
+                <div class="text-lg font-bold text-gray-900">${record.start_time} • ${record.duration} min</div>
+              </div>
+              <div class="text-right">
+                <div class="text-3xl font-bold ${
+                  record.grade === 'S' ? 'text-purple-600' :
+                  record.grade === 'A' ? 'text-green-600' :
+                  record.grade === 'B' ? 'text-blue-600' :
+                  record.grade === 'C' ? 'text-yellow-600' :
+                  'text-red-600'
+                }">${record.grade}</div>
+                <div class="text-sm text-gray-600">${record.total_score} pts</div>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1 text-lg">
+              ${record.body_soap ? '🧼' : ''}
+              ${record.hair_wash ? '🧴' : ''}
+              ${record.face_wash ? '🧼😊' : ''}
+              ${record.cat_shower ? '🐱' : ''}
+              ${record.teeth_brush ? '🪥' : ''}
+              ${record.feet_wash ? '🦶' : ''}
+              ${record.bath ? '🛁' : ''}
+              ${record.exfoliation ? '🧽' : ''}
+            </div>
+            <div class="mt-2 flex space-x-2">
+              <button onclick="editRecord(${record.id}); this.closest('.fixed').remove();" 
+                class="text-sm px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded">
+                Edit
+              </button>
+              <button onclick="deleteRecord(${record.id}); this.closest('.fixed').remove();" 
+                class="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded">
+                Delete
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
 }

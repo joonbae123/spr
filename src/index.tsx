@@ -1438,6 +1438,9 @@ app.get('/', (c) => {
                         <button onclick="showTab('scorecard')" id="tab-scorecard" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
                             <i class="fas fa-trophy mr-2"></i>Scorecard
                         </button>
+                        <button onclick="showTab('calendar')" id="tab-calendar" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
+                            <i class="fas fa-calendar-alt mr-2"></i>Calendar
+                        </button>
                         <button onclick="showTab('rewards')" id="tab-rewards" class="px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-gray-800">
                             <i class="fas fa-gift mr-2"></i>Rewards
                         </button>
@@ -1575,6 +1578,84 @@ app.get('/', (c) => {
                     <i class="fas fa-info-circle text-gray-400 cursor-help ml-2" title="How often you complete each checklist item"></i>
                 </h3>
                 <div id="item-frequency-stats"></div>
+            </div>
+        </div>
+
+        <!-- Calendar 탭 -->
+        <div id="content-calendar" class="max-w-7xl mx-auto px-4 py-6 hidden">
+            <!-- Monthly Stats Summary -->
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-6 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="calendar-stats">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600" id="cal-total-showers">0</div>
+                        <div class="text-sm text-gray-600">Showers</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600" id="cal-avg-score">0</div>
+                        <div class="text-sm text-gray-600">Avg Score</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-purple-600" id="cal-streak">0</div>
+                        <div class="text-sm text-gray-600">Days Streak</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-orange-600" id="cal-best-grade">-</div>
+                        <div class="text-sm text-gray-600">Best Grade</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Navigation -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <button onclick="prevMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
+                        <i class="fas fa-chevron-left text-2xl text-gray-600"></i>
+                    </button>
+                    <h2 class="text-2xl font-bold text-gray-800" id="calendar-month-year">
+                        Loading...
+                    </h2>
+                    <button onclick="nextMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
+                        <i class="fas fa-chevron-right text-2xl text-gray-600"></i>
+                    </button>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="mb-4">
+                    <div class="grid grid-cols-7 gap-2 mb-2">
+                        <div class="text-center font-semibold text-gray-600 py-2">Sun</div>
+                        <div class="text-center font-semibold text-gray-600 py-2">Mon</div>
+                        <div class="text-center font-semibold text-gray-600 py-2">Tue</div>
+                        <div class="text-center font-semibold text-gray-600 py-2">Wed</div>
+                        <div class="text-center font-semibold text-gray-600 py-2">Thu</div>
+                        <div class="text-center font-semibold text-gray-600 py-2">Fri</div>
+                        <div class="text-center font-semibold text-gray-600 py-2">Sat</div>
+                    </div>
+                    <div id="calendar-days" class="grid grid-cols-7 gap-2">
+                        <!-- Days will be inserted here by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="mt-6 pt-4 border-t">
+                    <div class="flex flex-wrap gap-4 justify-center text-sm">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 rounded-full bg-green-500"></div>
+                            <span class="text-gray-700">80+ (S/A)</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 rounded-full bg-yellow-500"></div>
+                            <span class="text-gray-700">60-79 (B/C)</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 rounded-full bg-red-500"></div>
+                            <span class="text-gray-700"><60 (D)</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-gray-400"></div>
+                            <span class="text-gray-700">No Record</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
